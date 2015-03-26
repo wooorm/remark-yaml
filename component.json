@@ -1,0 +1,17 @@
+{
+  "name": "mdast-yaml",
+  "version": "0.1.0",
+  "description": "Parse and stringify YAML code blocks in mdast",
+  "license": "MIT",
+  "keywords": [
+    "yaml",
+    "parse",
+    "parser",
+    "serializer",
+    "mdast"
+  ],
+  "repository": "wooorm/mdast-yaml",
+  "scripts": [
+    "mdast-yaml.js"
+  ]
+}
