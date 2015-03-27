@@ -120,7 +120,6 @@
     "with"
   ],
   "disallowMultipleLineStrings": true,
-  "disallowMultipleLineBreaks": true,
   "validateLineBreaks": "LF",
   "validateQuoteMarks": "'",
   "disallowMixedSpacesAndTabs": true,
