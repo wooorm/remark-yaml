@@ -109,7 +109,9 @@ Adds a `yaml` property to [**YAML**](https://github.com/wooorm/mdast/blob/master
     *   `library` (`Object?`, default: [`nodeca/js-yaml`](https://github.com/nodeca/js-yaml));
     *   `parse` (`string?`, default [`"safeLoad"`](https://github.com/nodeca/js-yaml#safeload-string---options-));
     *   `stringify` (`string?`, default [`"safeDump"`](https://github.com/nodeca/js-yaml#safedump-object---options-));
-    *   `prettify` (`boolean?`, default: `true`) — When true, the node’s content will be overwritten by the result of `library[stringify](node.yaml)`.
+    *   `prettify` (`boolean?`, default: `true`) — When true, the node’s content will be overwritten by the result of `library[stringify](node.yaml)`;
+    *   `onparse` (`function(Node)`, default `function () {}`) — Invoked when YAML is parsed, during parsing;
+    *   `onstringify` (`function(Node)`, default `function () {}`) — Invoked when YAML is stringified, during stringification.
 
 ## License
 

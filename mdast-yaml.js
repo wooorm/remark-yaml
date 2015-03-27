@@ -12,6 +12,11 @@ try {
 } catch (exception) {}
 
 /**
+ * No-operation.
+ */
+function noop() {}
+
+/**
  * Remove trailing newline.
  *
  * @param {string} value
@@ -32,6 +37,7 @@ function removeLastLine(value) {
 function parse(tokenize, settings) {
     var parser = settings.library || jsYAML;
     var method = settings.parse || 'safeLoad';
+    var callback = settings.onparse || noop;
 
     /**
      * Parse YAML, if available, using the bound
@@ -53,6 +59,8 @@ function parse(tokenize, settings) {
         });
 
         eat($0)(node);
+
+        callback(node, this);
     };
 }
 
@@ -65,6 +73,7 @@ function parse(tokenize, settings) {
 function stringify(compile, settings) {
     var stringifier = settings.library || jsYAML;
     var method = settings.stringify || 'safeDump';
+    var callback = settings.onstringify || noop;
 
     if (settings.prettify === false) {
         return compile;
@@ -81,6 +90,8 @@ function stringify(compile, settings) {
         if (node.yaml) {
             node.value = removeLastLine(stringifier[method](node.yaml));
         }
+
+        callback(node, this);
 
         return compile.apply(this, arguments);
     };

@@ -143,4 +143,60 @@ describe('mdast-yaml()', function () {
         assert('yaml' in ast);
         assert(ast.yaml === 'hello');
     });
+
+    it('should accept `onparse`', function () {
+        var isInvoked;
+
+        /**
+         * Assertion.
+         */
+        function onparse(node) {
+            assert(node.type === 'yaml');
+            assert(node.value === '"hello": "world"');
+            assert(node.yaml.hello === 'world');
+
+            isInvoked = true;
+        }
+
+        yaml([
+            '---',
+            '"hello": "world"',
+            '---',
+            '',
+            '# Foo bar',
+            ''
+        ].join('\n'), {
+            'onparse': onparse
+        });
+
+        assert(isInvoked === true);
+    });
+
+    it('should accept `onstringify`', function () {
+        var isInvoked;
+
+        /**
+         * Assertion.
+         */
+        function onstringify(node) {
+            assert(node.type === 'yaml');
+            assert(node.value === 'hello: world');
+            assert(node.yaml.hello === 'world');
+
+            isInvoked = true;
+        }
+
+        yaml([
+            '---',
+            '"hello": "world"',
+            '---',
+            '',
+            '# Foo bar',
+            ''
+        ].join('\n'), {
+            'onstringify': onstringify
+        });
+
+        assert(isInvoked === true);
+    });
 });
