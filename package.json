@@ -32,6 +32,7 @@
     "mdast-github": "^0.2.0",
     "mdast-toc": "^0.3.0",
     "mdast-usage": "^0.2.0",
+    "mdast-yaml-config": "^0.1.0",
     "mocha": "^2.0.0",
     "yaml": "^0.2.0"
   },
@@ -50,8 +51,7 @@
     "bundle": "browserify --no-builtins index.js -s mdastYAML > mdast-yaml.js",
     "postbundle": "esmangle mdast-yaml.js > mdast-yaml.min.js",
     "build-md": "mdast . --output",
-    "build-history": "mdast History.md --no-ignore --setting setext --output",
-    "build": "npm run build-md && npm run build-history && npm run bundle",
+    "build": "npm run build-md && npm run bundle",
     "prepublish": "npm run build"
   }
 }
