@@ -5,11 +5,11 @@ build/
 components/
 coverage/
 node_modules/
-test/
 build.js
 example.js
 mdast-yaml.js
 mdast-yaml.min.js
+test.js
 bower.json
 component.json
 History.md

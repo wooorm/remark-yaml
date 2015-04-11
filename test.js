@@ -7,7 +7,7 @@
 var assert = require('assert');
 var tjYAML = require('yaml');
 var mdast = require('mdast');
-var mdastYAML = require('..');
+var mdastYAML = require('./');
 
 /**
  * Shortcut to process.
