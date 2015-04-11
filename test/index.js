@@ -17,10 +17,10 @@ var mdastYAML = require('..');
  * @return {string}
  */
 function yaml(value, options, parseOnly) {
-    var parser = mdast.use(mdastYAML, options);
-    var ast = parser.parse(value);
+    var processor = mdast.use(mdastYAML, options);
+    var ast = processor.run(processor.parse(value));
 
-    return parseOnly ? ast : parser.stringify(ast);
+    return parseOnly ? ast : processor.stringify(ast);
 }
 
 /*
@@ -142,6 +142,49 @@ describe('mdast-yaml()', function () {
 
         assert('yaml' in ast);
         assert(ast.yaml === 'hello');
+    });
+
+    it('should accept `library: "js-yaml"`', function () {
+        assert.doesNotThrow(function () {
+            yaml('', {
+                'library': 'js-yaml'
+            });
+        });
+    });
+
+    it('should accept `library` as a string', function () {
+        assert.doesNotThrow(function () {
+            yaml('', {
+                'library': 'yaml',
+                'parse': 'eval'
+            });
+        });
+    });
+
+    it('should accept `library` as a path', function () {
+        assert.doesNotThrow(function () {
+            yaml('', {
+                'library': 'node_modules/yaml/lib/yaml.js',
+                'parse': 'eval'
+            });
+        });
+    });
+
+    it('should accept `library` as a path without extension', function () {
+        assert.doesNotThrow(function () {
+            yaml('', {
+                'library': 'node_modules/yaml/lib/yaml',
+                'parse': 'eval'
+            });
+        });
+    });
+
+    it('should throw when `library` cannot be found', function () {
+        assert.throws(function () {
+            yaml('', {
+                'library': 'foo'
+            });
+        }, /Cannot find module 'foo'/);
     });
 
     it('should accept `onparse`', function () {

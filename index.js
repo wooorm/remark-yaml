@@ -5,10 +5,80 @@
  */
 
 var jsYAML = null;
+var fs = {};
+var path = {};
+var proc = {};
 
 try {
     jsYAML = require('js-yaml');
-} catch (exception) {}
+} catch (exception) {/* empty */}
+
+try {
+    fs = require('fs');
+} catch (exception) {/* empty */}
+
+try {
+    path = require('path');
+} catch (exception) {/* empty */}
+
+/*
+ * Hide process use from browserify/component/duo.
+ */
+
+/* istanbul ignore else */
+if (typeof global !== 'undefined' && global.process) {
+    proc = global.process;
+}
+
+/*
+ * Methods.
+ */
+
+var exists = fs.existsSync;
+var resolve = path.resolve;
+
+/*
+ * Constants.
+ */
+
+var JS_YAML = 'js-yaml';
+
+/**
+ * Find a library.
+ *
+ * @param {string} pathlike
+ * @return {Object}
+ */
+function loadLibrary(pathlike) {
+    var cwd;
+    var local;
+    var npm;
+    var plugin;
+
+    if (pathlike === JS_YAML && jsYAML) {
+        return jsYAML;
+    }
+
+    cwd = proc.cwd && proc.cwd();
+
+    /* istanbul ignore if */
+    if (!cwd) {
+        throw new Error('Cannot lazy load library when not in node');
+    }
+
+    local = resolve(cwd, pathlike);
+    npm = resolve(cwd, 'node_modules', pathlike);
+
+    if (exists(local) || exists(local + '.js')) {
+        plugin = local;
+    } else if (exists(npm)) {
+        plugin = npm;
+    } else {
+        plugin = pathlike;
+    }
+
+    return require(plugin);
+}
 
 /**
  * No-operation.
@@ -106,6 +176,10 @@ function attacher(mdast, options) {
     var tokenizers = mdast.Parser.prototype.blockTokenizers;
     var stringifiers = mdast.Compiler.prototype;
     var settings = options || {};
+
+    if (typeof settings.library === 'string') {
+        settings.library = loadLibrary(settings.library);
+    }
 
     tokenizers.yamlFrontMatter = parse(tokenizers.yamlFrontMatter, settings);
     stringifiers.yaml = stringify(stringifiers.yaml, settings);

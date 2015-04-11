@@ -106,7 +106,7 @@ Adds a `yaml` property to [**YAML**](https://github.com/wooorm/mdast/blob/master
 
 *   `yaml` — This plugin;
 *   `options` (`Object?`) — Settings:
-    *   `library` (`Object?`, default: [`nodeca/js-yaml`](https://github.com/nodeca/js-yaml));
+    *   `library` (`string?` or `Object?`, default: [`nodeca/js-yaml`](https://github.com/nodeca/js-yaml)) — you can also pass a file or node module in;
     *   `parse` (`string?`, default [`"safeLoad"`](https://github.com/nodeca/js-yaml#safeload-string---options-));
     *   `stringify` (`string?`, default [`"safeDump"`](https://github.com/nodeca/js-yaml#safedump-object---options-));
     *   `prettify` (`boolean?`, default: `true`) — When true, the node’s content will be overwritten by the result of `library[stringify](node.yaml)`;
