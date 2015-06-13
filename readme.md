@@ -9,19 +9,19 @@ Supports IE9+ ([mdn](https://developer.mozilla.org/JavaScript/Reference/Global_O
 [npm](https://docs.npmjs.com/cli/install)
 
 ```bash
-$ npm install mdast-yaml
+npm install mdast-yaml
 ```
 
 [Component.js](https://github.com/componentjs/component)
 
 ```bash
-$ component install wooorm/mdast-yaml
+component install wooorm/mdast-yaml
 ```
 
 [Bower](http://bower.io/#install-packages)
 
 ```bash
-$ bower install mdast-yaml
+bower install mdast-yaml
 ```
 
 [Duo](http://duojs.org/#getting-started)
@@ -108,13 +108,25 @@ Adds a `yaml` property to [**YAML**](https://github.com/wooorm/mdast/blob/master
 **Parameters**
 
 *   `yaml` — This plugin;
+
 *   `options` (`Object?`) — Settings:
-    *   `library` (`string?` or `Object?`, default: [`nodeca/js-yaml`](https://github.com/nodeca/js-yaml)) — you can also pass a file or node module in;
+
+    *   `library` (`string?` or `Object?`, default: [`nodeca/js-yaml`](https://github.com/nodeca/js-yaml))
+        — you can also pass a file or node module in;
+
     *   `parse` (`string?`, default [`"safeLoad"`](https://github.com/nodeca/js-yaml#safeload-string---options-));
+
     *   `stringify` (`string?`, default [`"safeDump"`](https://github.com/nodeca/js-yaml#safedump-object---options-));
-    *   `prettify` (`boolean?`, default: `true`) — When true, the node’s content will be overwritten by the result of `library[stringify](node.yaml)`;
-    *   `onparse` (`function(Node)`, default `function () {}`) — Invoked when YAML is parsed, during parsing;
-    *   `onstringify` (`function(Node)`, default `function () {}`) — Invoked when YAML is stringified, during stringification.
+
+    *   `prettify` (`boolean?`, default: `true`)
+        — When true, the node’s content will be overwritten by the result
+        of `library[stringify](node.yaml)`;
+
+    *   `onparse` (`function(Node)`, default `function () {}`)
+        — Invoked when YAML is parsed, during parsing;
+
+    *   `onstringify` (`function(Node)`, default `function () {}`)
+        — Invoked when YAML is stringified, during stringification.
 
 ## License
 

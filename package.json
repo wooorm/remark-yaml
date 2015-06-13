@@ -30,6 +30,7 @@
     "jscs-jsdoc": "^1.0.0",
     "mdast": "^0.22.0",
     "mdast-github": "^0.3.0",
+    "mdast-lint": "^0.2.0",
     "mdast-toc": "^0.4.0",
     "mdast-usage": "^0.3.0",
     "mdast-yaml-config": "^0.1.0",
@@ -48,7 +49,7 @@
     "make": "npm run lint && npm run test-coverage",
     "bundle": "browserify --no-builtins -u esprima index.js -s mdastYAML > mdast-yaml.js",
     "postbundle": "esmangle mdast-yaml.js > mdast-yaml.min.js",
-    "build-md": "mdast . --output",
+    "build-md": "mdast . --output --quiet",
     "build": "npm run build-md && npm run bundle",
     "prepublish": "npm run build"
   }
