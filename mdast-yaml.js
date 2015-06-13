@@ -249,12 +249,12 @@ module.exports.addConstructor = deprecated('addConstructor');
 
 
 function isNothing(subject) {
-  return (undefined === subject) || (null === subject);
+  return (typeof subject === 'undefined') || (null === subject);
 }
 
 
 function isObject(subject) {
-  return ('object' === typeof subject) && (null !== subject);
+  return (typeof subject === 'object') && (null !== subject);
 }
 
 
@@ -263,9 +263,8 @@ function toArray(sequence) {
     return sequence;
   } else if (isNothing(sequence)) {
     return [];
-  } else {
-    return [ sequence ];
   }
+  return [ sequence ];
 }
 
 
@@ -311,16 +310,15 @@ module.exports.extend         = extend;
 },{}],5:[function(require,module,exports){
 'use strict';
 
+/*eslint-disable no-use-before-define*/
 
 var common              = require('./common');
 var YAMLException       = require('./exception');
 var DEFAULT_FULL_SCHEMA = require('./schema/default_full');
 var DEFAULT_SAFE_SCHEMA = require('./schema/default_safe');
 
-
 var _toString       = Object.prototype.toString;
 var _hasOwnProperty = Object.prototype.hasOwnProperty;
-
 
 var CHAR_TAB                  = 0x09; /* Tab */
 var CHAR_LINE_FEED            = 0x0A; /* LF */
@@ -346,7 +344,6 @@ var CHAR_LEFT_CURLY_BRACKET   = 0x7B; /* { */
 var CHAR_VERTICAL_LINE        = 0x7C; /* | */
 var CHAR_RIGHT_CURLY_BRACKET  = 0x7D; /* } */
 
-
 var ESCAPE_SEQUENCES = {};
 
 ESCAPE_SEQUENCES[0x00]   = '\\0';
@@ -365,12 +362,10 @@ ESCAPE_SEQUENCES[0xA0]   = '\\_';
 ESCAPE_SEQUENCES[0x2028] = '\\L';
 ESCAPE_SEQUENCES[0x2029] = '\\P';
 
-
 var DEPRECATED_BOOLEANS_SYNTAX = [
   'y', 'Y', 'yes', 'Yes', 'YES', 'on', 'On', 'ON',
   'n', 'N', 'no', 'No', 'NO', 'off', 'Off', 'OFF'
 ];
-
 
 function compileStyleMap(schema, map) {
   var result, keys, index, length, tag, style, type;
@@ -402,7 +397,6 @@ function compileStyleMap(schema, map) {
   return result;
 }
 
-
 function encodeHex(character) {
   var string, handle, length;
 
@@ -424,13 +418,13 @@ function encodeHex(character) {
   return '\\' + handle + common.repeat('0', length - string.length) + string;
 }
 
-
 function State(options) {
   this.schema      = options['schema'] || DEFAULT_FULL_SCHEMA;
   this.indent      = Math.max(1, (options['indent'] || 2));
   this.skipInvalid = options['skipInvalid'] || false;
   this.flowLevel   = (common.isNothing(options['flowLevel']) ? -1 : options['flowLevel']);
   this.styleMap    = compileStyleMap(this.schema, options['styles'] || null);
+  this.sortKeys    = options['sortKeys'] || false;
 
   this.implicitTypes = this.schema.compiledImplicit;
   this.explicitTypes = this.schema.compiledExplicit;
@@ -442,6 +436,31 @@ function State(options) {
   this.usedDuplicates = null;
 }
 
+function indentString(string, spaces) {
+  var ind = common.repeat(' ', spaces),
+      position = 0,
+      next = -1,
+      result = '',
+      line,
+      length = string.length;
+
+  while (position < length) {
+    next = string.indexOf('\n', position);
+    if (next === -1) {
+      line = string.slice(position);
+      position = length;
+    } else {
+      line = string.slice(position, next + 1);
+      position = next + 1;
+    }
+    if (line.length && line !== '\n') {
+      result += ind;
+    }
+    result += line;
+  }
+
+  return result;
+}
 
 function generateNextLine(state, level) {
   return '\n' + common.repeat(' ', state.indent * level);
@@ -461,81 +480,339 @@ function testImplicitResolving(state, str) {
   return false;
 }
 
-function writeScalar(state, object) {
-  var isQuoted, checkpoint, position, length, character, first;
+function StringBuilder(source) {
+  this.source = source;
+  this.result = '';
+  this.checkpoint = 0;
+}
 
-  state.dump = '';
-  isQuoted = false;
-  checkpoint = 0;
-  first = object.charCodeAt(0) || 0;
+StringBuilder.prototype.takeUpTo = function (position) {
+  var er;
 
-  if (-1 !== DEPRECATED_BOOLEANS_SYNTAX.indexOf(object)) {
-    // Ensure compatibility with YAML 1.0/1.1 loaders.
-    isQuoted = true;
-  } else if (0 === object.length) {
-    // Quote empty string
-    isQuoted = true;
-  } else if (CHAR_SPACE    === first ||
-             CHAR_SPACE    === object.charCodeAt(object.length - 1)) {
-    isQuoted = true;
-  } else if (CHAR_MINUS    === first ||
-             CHAR_QUESTION === first) {
-    // Don't check second symbol for simplicity
-    isQuoted = true;
+  if (position < this.checkpoint) {
+    er = new Error('position should be > checkpoint');
+    er.position = position;
+    er.checkpoint = this.checkpoint;
+    throw er;
   }
 
-  for (position = 0, length = object.length; position < length; position += 1) {
-    character = object.charCodeAt(position);
+  this.result += this.source.slice(this.checkpoint, position);
+  this.checkpoint = position;
+  return this;
+};
 
-    if (!isQuoted) {
-      if (CHAR_TAB                  === character ||
-          CHAR_LINE_FEED            === character ||
-          CHAR_CARRIAGE_RETURN      === character ||
-          CHAR_COMMA                === character ||
-          CHAR_LEFT_SQUARE_BRACKET  === character ||
-          CHAR_RIGHT_SQUARE_BRACKET === character ||
-          CHAR_LEFT_CURLY_BRACKET   === character ||
-          CHAR_RIGHT_CURLY_BRACKET  === character ||
-          CHAR_SHARP                === character ||
-          CHAR_AMPERSAND            === character ||
-          CHAR_ASTERISK             === character ||
-          CHAR_EXCLAMATION          === character ||
-          CHAR_VERTICAL_LINE        === character ||
-          CHAR_GREATER_THAN         === character ||
-          CHAR_SINGLE_QUOTE         === character ||
-          CHAR_DOUBLE_QUOTE         === character ||
-          CHAR_PERCENT              === character ||
-          CHAR_COMMERCIAL_AT        === character ||
-          CHAR_COLON                === character ||
-          CHAR_GRAVE_ACCENT         === character) {
-        isQuoted = true;
+StringBuilder.prototype.escapeChar = function () {
+  var character, esc;
+
+  character = this.source.charCodeAt(this.checkpoint);
+  esc = ESCAPE_SEQUENCES[character] || encodeHex(character);
+  this.result += esc;
+  this.checkpoint += 1;
+
+  return this;
+};
+
+StringBuilder.prototype.finish = function () {
+  if (this.source.length > this.checkpoint) {
+    this.takeUpTo(this.source.length);
+  }
+};
+
+function writeScalar(state, object, level) {
+  var simple, first, spaceWrap, folded, literal, single, double,
+      sawLineFeed, linePosition, longestLine, indent, max, character,
+      position, escapeSeq, hexEsc, previous, lineLength, modifier,
+      trailingLineBreaks, result;
+
+  if (0 === object.length) {
+    state.dump = "''";
+    return;
+  }
+
+  if (-1 !== DEPRECATED_BOOLEANS_SYNTAX.indexOf(object)) {
+    state.dump = "'" + object + "'";
+    return;
+  }
+
+  simple = true;
+  first = object.length ? object.charCodeAt(0) : 0;
+  spaceWrap = (CHAR_SPACE === first ||
+               CHAR_SPACE === object.charCodeAt(object.length - 1));
+
+  // Simplified check for restricted first characters
+  // http://www.yaml.org/spec/1.2/spec.html#ns-plain-first%28c%29
+  if (CHAR_MINUS         === first ||
+      CHAR_QUESTION      === first ||
+      CHAR_COMMERCIAL_AT === first ||
+      CHAR_GRAVE_ACCENT  === first) {
+    simple = false;
+  }
+
+  // can only use > and | if not wrapped in spaces.
+  if (spaceWrap) {
+    simple = false;
+    folded = false;
+    literal = false;
+  } else {
+    folded = true;
+    literal = true;
+  }
+
+  single = true;
+  double = new StringBuilder(object);
+
+  sawLineFeed = false;
+  linePosition = 0;
+  longestLine = 0;
+
+  indent = state.indent * level;
+  max = 80;
+  if (indent < 40) {
+    max -= indent;
+  } else {
+    max = 40;
+  }
+
+  for (position = 0; position < object.length; position++) {
+    character = object.charCodeAt(position);
+    if (simple) {
+      // Characters that can never appear in the simple scalar
+      if (!simpleChar(character)) {
+        simple = false;
+      } else {
+        // Still simple.  If we make it all the way through like
+        // this, then we can just dump the string as-is.
+        continue;
       }
     }
 
-    if (ESCAPE_SEQUENCES[character] ||
-        !((0x00020 <= character && character <= 0x00007E) ||
-          (0x00085 === character)                         ||
-          (0x000A0 <= character && character <= 0x00D7FF) ||
-          (0x0E000 <= character && character <= 0x00FFFD) ||
-          (0x10000 <= character && character <= 0x10FFFF))) {
-      state.dump += object.slice(checkpoint, position);
-      state.dump += ESCAPE_SEQUENCES[character] || encodeHex(character);
-      checkpoint = position + 1;
-      isQuoted = true;
+    if (single && character === CHAR_SINGLE_QUOTE) {
+      single = false;
+    }
+
+    escapeSeq = ESCAPE_SEQUENCES[character];
+    hexEsc = needsHexEscape(character);
+
+    if (!escapeSeq && !hexEsc) {
+      continue;
+    }
+
+    if (character !== CHAR_LINE_FEED &&
+        character !== CHAR_DOUBLE_QUOTE &&
+        character !== CHAR_SINGLE_QUOTE) {
+      folded = false;
+      literal = false;
+    } else if (character === CHAR_LINE_FEED) {
+      sawLineFeed = true;
+      single = false;
+      if (position > 0) {
+        previous = object.charCodeAt(position - 1);
+        if (previous === CHAR_SPACE) {
+          literal = false;
+          folded = false;
+        }
+      }
+      if (folded) {
+        lineLength = position - linePosition;
+        linePosition = position;
+        if (lineLength > longestLine) {
+          longestLine = lineLength;
+        }
+      }
+    }
+
+    if (character !== CHAR_DOUBLE_QUOTE) {
+      single = false;
+    }
+
+    double.takeUpTo(position);
+    double.escapeChar();
+  }
+
+  if (simple && testImplicitResolving(state, object)) {
+    simple = false;
+  }
+
+  modifier = '';
+  if (folded || literal) {
+    trailingLineBreaks = 0;
+    if (object.charCodeAt(object.length - 1) === CHAR_LINE_FEED) {
+      trailingLineBreaks += 1;
+      if (object.charCodeAt(object.length - 2) === CHAR_LINE_FEED) {
+        trailingLineBreaks += 1;
+      }
+    }
+
+    if (trailingLineBreaks === 0) {
+      modifier = '-';
+    } else if (trailingLineBreaks === 2) {
+      modifier = '+';
     }
   }
 
-  if (checkpoint < position) {
-    state.dump += object.slice(checkpoint, position);
+  if (literal && longestLine < max) {
+    folded = false;
   }
 
-  if (!isQuoted && testImplicitResolving(state, state.dump)) {
-    isQuoted = true;
+  // If it's literally one line, then don't bother with the literal.
+  // We may still want to do a fold, though, if it's a super long line.
+  if (!sawLineFeed) {
+    literal = false;
   }
 
-  if (isQuoted) {
-    state.dump = '"' + state.dump + '"';
+  if (simple) {
+    state.dump = object;
+  } else if (single) {
+    state.dump = '\'' + object + '\'';
+  } else if (folded) {
+    result = fold(object, max);
+    state.dump = '>' + modifier + '\n' + indentString(result, indent);
+  } else if (literal) {
+    if (!modifier) {
+      object = object.replace(/\n$/, '');
+    }
+    state.dump = '|' + modifier + '\n' + indentString(object, indent);
+  } else if (double) {
+    double.finish();
+    state.dump = '"' + double.result + '"';
+  } else {
+    throw new Error('Failed to dump scalar value');
   }
+
+  return;
+}
+
+// The `trailing` var is a regexp match of any trailing `\n` characters.
+//
+// There are three cases we care about:
+//
+// 1. One trailing `\n` on the string.  Just use `|` or `>`.
+//    This is the assumed default. (trailing = null)
+// 2. No trailing `\n` on the string.  Use `|-` or `>-` to "chomp" the end.
+// 3. More than one trailing `\n` on the string.  Use `|+` or `>+`.
+//
+// In the case of `>+`, these line breaks are *not* doubled (like the line
+// breaks within the string), so it's important to only end with the exact
+// same number as we started.
+function fold(object, max) {
+  var result = '',
+      position = 0,
+      length = object.length,
+      trailing = /\n+$/.exec(object),
+      newLine;
+
+  if (trailing) {
+    length = trailing.index + 1;
+  }
+
+  while (position < length) {
+    newLine = object.indexOf('\n', position);
+    if (newLine > length || newLine === -1) {
+      if (result) {
+        result += '\n\n';
+      }
+      result += foldLine(object.slice(position, length), max);
+      position = length;
+    } else {
+      if (result) {
+        result += '\n\n';
+      }
+      result += foldLine(object.slice(position, newLine), max);
+      position = newLine + 1;
+    }
+  }
+  if (trailing && trailing[0] !== '\n') {
+    result += trailing[0];
+  }
+
+  return result;
+}
+
+function foldLine(line, max) {
+  if (line === '') {
+    return line;
+  }
+
+  var foldRe = /[^\s] [^\s]/g,
+      result = '',
+      prevMatch = 0,
+      foldStart = 0,
+      match = foldRe.exec(line),
+      index,
+      foldEnd,
+      folded;
+
+  while (match) {
+    index = match.index;
+
+    // when we cross the max len, if the previous match would've
+    // been ok, use that one, and carry on.  If there was no previous
+    // match on this fold section, then just have a long line.
+    if (index - foldStart > max) {
+      if (prevMatch !== foldStart) {
+        foldEnd = prevMatch;
+      } else {
+        foldEnd = index;
+      }
+
+      if (result) {
+        result += '\n';
+      }
+      folded = line.slice(foldStart, foldEnd);
+      result += folded;
+      foldStart = foldEnd + 1;
+    }
+    prevMatch = index + 1;
+    match = foldRe.exec(line);
+  }
+
+  if (result) {
+    result += '\n';
+  }
+
+  // if we end up with one last word at the end, then the last bit might
+  // be slightly bigger than we wanted, because we exited out of the loop.
+  if (foldStart !== prevMatch && line.length - foldStart > max) {
+    result += line.slice(foldStart, prevMatch) + '\n' +
+              line.slice(prevMatch + 1);
+  } else {
+    result += line.slice(foldStart);
+  }
+
+  return result;
+}
+
+// Returns true if character can be found in a simple scalar
+function simpleChar(character) {
+  return CHAR_TAB                  !== character &&
+         CHAR_LINE_FEED            !== character &&
+         CHAR_CARRIAGE_RETURN      !== character &&
+         CHAR_COMMA                !== character &&
+         CHAR_LEFT_SQUARE_BRACKET  !== character &&
+         CHAR_RIGHT_SQUARE_BRACKET !== character &&
+         CHAR_LEFT_CURLY_BRACKET   !== character &&
+         CHAR_RIGHT_CURLY_BRACKET  !== character &&
+         CHAR_SHARP                !== character &&
+         CHAR_AMPERSAND            !== character &&
+         CHAR_ASTERISK             !== character &&
+         CHAR_EXCLAMATION          !== character &&
+         CHAR_VERTICAL_LINE        !== character &&
+         CHAR_GREATER_THAN         !== character &&
+         CHAR_SINGLE_QUOTE         !== character &&
+         CHAR_DOUBLE_QUOTE         !== character &&
+         CHAR_PERCENT              !== character &&
+         CHAR_COLON                !== character &&
+         !ESCAPE_SEQUENCES[character]            &&
+         !needsHexEscape(character);
+}
+
+// Returns true if the character code needs to be escaped.
+function needsHexEscape(character) {
+  return !((0x00020 <= character && character <= 0x00007E) ||
+           (0x00085 === character)                         ||
+           (0x000A0 <= character && character <= 0x00D7FF) ||
+           (0x0E000 <= character && character <= 0x00FFFD) ||
+           (0x10000 <= character && character <= 0x10FFFF));
 }
 
 function writeFlowSequence(state, level, object) {
@@ -632,6 +909,18 @@ function writeBlockMapping(state, level, object, compact) {
       objectValue,
       explicitPair,
       pairBuffer;
+
+  // Allow sorting keys so that the output file is deterministic
+  if (state.sortKeys === true) {
+    // Default sorting
+    objectKeyList.sort();
+  } else if (typeof state.sortKeys === 'function') {
+    // Custom sort function
+    objectKeyList.sort(state.sortKeys);
+  } else if (state.sortKeys) {
+    // Something is wrong
+    throw new YAMLException('sortKeys must be a boolean or a function');
+  }
 
   for (index = 0, length = objectKeyList.length; index < length; index += 1) {
     pairBuffer = '';
@@ -781,11 +1070,12 @@ function writeNode(state, level, object, block, compact) {
       }
     } else if ('[object String]' === type) {
       if ('?' !== state.tag) {
-        writeScalar(state, state.dump);
+        writeScalar(state, state.dump, level);
       }
-    } else if (state.skipInvalid) {
-      return false;
     } else {
+      if (state.skipInvalid) {
+        return false;
+      }
       throw new YAMLException('unacceptable kind of an object to dump ' + type);
     }
 
@@ -825,8 +1115,8 @@ function inspectNode(object, objects, duplicatesIndexes) {
       }
     } else {
       objects.push(object);
-    
-      if(Array.isArray(object)) {
+
+      if (Array.isArray(object)) {
         for (index = 0, length = object.length; index < length; index += 1) {
           inspectNode(object[index], objects, duplicatesIndexes);
         }
@@ -850,16 +1140,13 @@ function dump(input, options) {
 
   if (writeNode(state, 0, input, true, true)) {
     return state.dump + '\n';
-  } else {
-    return '';
   }
+  return '';
 }
-
 
 function safeDump(input, options) {
   return dump(input, common.extend({ schema: DEFAULT_SAFE_SCHEMA }, options));
 }
-
 
 module.exports.dump     = dump;
 module.exports.safeDump = safeDump;
@@ -894,6 +1181,7 @@ module.exports = YAMLException;
 },{}],7:[function(require,module,exports){
 'use strict';
 
+/*eslint-disable max-len,no-use-before-define*/
 
 var common              = require('./common');
 var YAMLException       = require('./exception');
@@ -916,7 +1204,7 @@ var CHOMPING_STRIP = 2;
 var CHOMPING_KEEP  = 3;
 
 
-var PATTERN_NON_PRINTABLE         = /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x84\x86-\x9F\uD800-\uDFFF\uFFFE\uFFFF]/;
+var PATTERN_NON_PRINTABLE         = /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x84\x86-\x9F\uFFFE\uFFFF]|[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?:[^\uD800-\uDBFF]|^)[\uDC00-\uDFFF]/;
 var PATTERN_NON_ASCII_LINE_BREAKS = /[\x85\u2028\u2029]/;
 var PATTERN_FLOW_INDICATORS       = /[,\[\]\{\}]/;
 var PATTERN_TAG_HANDLE            = /^(?:!|!!|![a-z\-]+!)$/i;
@@ -953,7 +1241,9 @@ function fromHexCode(c) {
     return c - 0x30;
   }
 
+  /*eslint-disable no-bitwise*/
   lc = c | 0x20;
+
   if ((0x61/* a */ <= lc) && (lc <= 0x66/* f */)) {
     return lc - 0x61 + 10;
   }
@@ -977,7 +1267,7 @@ function fromDecimalCode(c) {
 }
 
 function simpleEscapeSequence(c) {
- return (c === 0x30/* 0 */) ? '\x00' :
+  return (c === 0x30/* 0 */) ? '\x00' :
         (c === 0x61/* a */) ? '\x07' :
         (c === 0x62/* b */) ? '\x08' :
         (c === 0x74/* t */) ? '\x09' :
@@ -1000,12 +1290,11 @@ function simpleEscapeSequence(c) {
 function charFromCodepoint(c) {
   if (c <= 0xFFFF) {
     return String.fromCharCode(c);
-  } else {
-    // Encode UTF-16 surrogate pair
-    // https://en.wikipedia.org/wiki/UTF-16#Code_points_U.2B010000_to_U.2B10FFFF
-    return String.fromCharCode(((c - 0x010000) >> 10) + 0xD800,
-                               ((c - 0x010000) & 0x03FF) + 0xDC00);
   }
+  // Encode UTF-16 surrogate pair
+  // https://en.wikipedia.org/wiki/UTF-16#Code_points_U.2B010000_to_U.2B10FFFF
+  return String.fromCharCode(((c - 0x010000) >> 10) + 0xD800,
+                             ((c - 0x010000) & 0x03FF) + 0xDC00);
 }
 
 var simpleEscapeCheck = new Array(256); // integer, for fast access
@@ -1071,7 +1360,7 @@ function throwWarning(state, message) {
 
 var directiveHandlers = {
 
-  'YAML': function handleYamlDirective(state, name, args) {
+  YAML: function handleYamlDirective(state, name, args) {
 
       var match, major, minor;
 
@@ -1104,7 +1393,7 @@ var directiveHandlers = {
       }
     },
 
-  'TAG': function handleTagDirective(state, name, args) {
+  TAG: function handleTagDirective(state, name, args) {
 
       var handle, prefix;
 
@@ -1264,7 +1553,7 @@ function testDocumentSeparator(state) {
   // in parent on each call, for efficiency. No needs to test here again.
   if ((0x2D/* - */ === ch || 0x2E/* . */ === ch) &&
       state.input.charCodeAt(_position + 1) === ch &&
-      state.input.charCodeAt(_position+ 2) === ch) {
+      state.input.charCodeAt(_position + 2) === ch) {
 
     _position += 3;
 
@@ -1334,7 +1623,7 @@ function readPlainScalar(state, nodeIndent, withinFlowCollection) {
 
   while (0 !== ch) {
     if (0x3A/* : */ === ch) {
-      following = state.input.charCodeAt(state.position+1);
+      following = state.input.charCodeAt(state.position + 1);
 
       if (is_WS_OR_EOL(following) ||
           withinFlowCollection && is_FLOW_INDICATOR(following)) {
@@ -1389,11 +1678,11 @@ function readPlainScalar(state, nodeIndent, withinFlowCollection) {
 
   if (state.result) {
     return true;
-  } else {
-    state.kind = _kind;
-    state.result = _result;
-    return false;
   }
+
+  state.kind = _kind;
+  state.result = _result;
+  return false;
 }
 
 function readSingleQuotedScalar(state, nodeIndent) {
@@ -1472,7 +1761,7 @@ function readDoubleQuotedScalar(state, nodeIndent) {
       if (is_EOL(ch)) {
         skipSeparationSpace(state, false, nodeIndent);
 
-        //TODO: rework to inline fn with no type cast?
+        // TODO: rework to inline fn with no type cast?
       } else if (ch < 256 && simpleEscapeCheck[ch]) {
         state.result += simpleEscapeMap[ch];
         state.position++;
@@ -1538,11 +1827,11 @@ function readFlowCollection(state, nodeIndent) {
   ch = state.input.charCodeAt(state.position);
 
   if (ch === 0x5B/* [ */) {
-    terminator = 0x5D/* ] */;
+    terminator = 0x5D;/* ] */
     isMapping = false;
     _result = [];
   } else if (ch === 0x7B/* { */) {
-    terminator = 0x7D/* } */;
+    terminator = 0x7D;/* } */
     isMapping = true;
     _result = {};
   } else {
@@ -1744,24 +2033,20 @@ function readBlockScalar(state, nodeIndent) {
       }
 
     // Literal style: just add exact number of line breaks between content lines.
-    } else {
-
+    } else if (detectedIndent) {
       // If current line isn't the first one - count line break from the last content line.
-      if (detectedIndent) {
-        state.result += common.repeat('\n', emptyLines + 1);
-
+      state.result += common.repeat('\n', emptyLines + 1);
+    } else {
       // In case of the first content line - count only empty lines.
-      } else {
-        state.result += common.repeat('\n', emptyLines);
-      }
     }
 
     detectedIndent = true;
     emptyLines = 0;
     captureStart = state.position;
 
-    while (!is_EOL(ch) && (0 !== ch))
-    { ch = state.input.charCodeAt(++state.position); }
+    while (!is_EOL(ch) && (0 !== ch)) {
+      ch = state.input.charCodeAt(++state.position);
+    }
 
     captureSegment(state, captureStart, state.position, false);
   }
@@ -1827,9 +2112,8 @@ function readBlockSequence(state, nodeIndent) {
     state.kind = 'sequence';
     state.result = _result;
     return true;
-  } else {
-    return false;
   }
+  return false;
 }
 
 function readBlockMapping(state, nodeIndent, flowIndent) {
@@ -2409,10 +2693,18 @@ function loadDocuments(input, options) {
   input = String(input);
   options = options || {};
 
-  if (0 !== input.length &&
-      0x0A/* LF */ !== input.charCodeAt(input.length - 1) &&
-      0x0D/* CR */ !== input.charCodeAt(input.length - 1)) {
-    input += '\n';
+  if (input.length !== 0) {
+
+    // Add tailing `\n` if not exists
+    if (0x0A/* LF */ !== input.charCodeAt(input.length - 1) &&
+        0x0D/* CR */ !== input.charCodeAt(input.length - 1)) {
+      input += '\n';
+    }
+
+    // Strip BOM
+    if (input.charCodeAt(0) === 0xFEFF) {
+      input = input.slice(1);
+    }
   }
 
   var state = new State(input, options);
@@ -2450,12 +2742,12 @@ function load(input, options) {
   var documents = loadDocuments(input, options), index, length;
 
   if (0 === documents.length) {
+    /*eslint-disable no-undefined*/
     return undefined;
   } else if (1 === documents.length) {
     return documents[0];
-  } else {
-    throw new YAMLException('expected a single document in the stream, but found more');
   }
+  throw new YAMLException('expected a single document in the stream, but found more');
 }
 
 
@@ -2557,6 +2849,7 @@ module.exports = Mark;
 },{"./common":4}],9:[function(require,module,exports){
 'use strict';
 
+/*eslint-disable max-len*/
 
 var common        = require('./common');
 var YAMLException = require('./exception');
@@ -2848,6 +3141,7 @@ module.exports = Type;
 },{"./exception":6}],16:[function(require,module,exports){
 'use strict';
 
+/*eslint-disable no-bitwise*/
 
 // A trick for browserified version.
 // Since we make browserifier to ignore `buffer` module, NodeBuffer will be undefined
@@ -2867,7 +3161,7 @@ function resolveYamlBinary(data) {
   var code, idx, bitlen = 0, len = 0, max = data.length, map = BASE64_MAP;
 
   // Convert one by one.
-  for (idx = 0; idx < max; idx ++) {
+  for (idx = 0; idx < max; idx++) {
     code = map.indexOf(data.charAt(idx));
 
     // Skip CR/LF
@@ -2905,7 +3199,7 @@ function constructYamlBinary(data) {
 
   // Dump tail
 
-  tailbits = (max % 4)*6;
+  tailbits = (max % 4) * 6;
 
   if (tailbits === 0) {
     result.push((bits >> 16) & 0xFF);
@@ -3077,9 +3371,8 @@ function constructYamlFloat(data) {
 
     return sign * value;
 
-  } else {
-    return sign * parseFloat(value, 10);
   }
+  return sign * parseFloat(value, 10);
 }
 
 function representYamlFloat(object, style) {
@@ -3112,9 +3405,8 @@ function representYamlFloat(object, style) {
     }
   } else if (common.isNegativeZero(object)) {
     return '-0.0';
-  } else {
-    return object.toString(10);
   }
+  return object.toString(10);
 }
 
 function isFloat(object) {
@@ -3172,7 +3464,7 @@ function resolveYamlInteger(data) {
 
   if (ch === '0') {
     // 0
-    if (index+1 === max) { return true; }
+    if (index + 1 === max) { return true; }
     ch = data[++index];
 
     // base 2, base 8, base 16
@@ -3384,7 +3676,8 @@ function constructJavascriptFunction(data) {
 
   // Esprima's ranges include the first '{' and the last '}' characters on
   // function expressions. So cut them out.
-  return new Function(params, source.slice(body[0]+1, body[1]-1));
+  /*eslint-disable no-new-func*/
+  return new Function(params, source.slice(body[0] + 1, body[1] - 1));
 }
 
 function representJavascriptFunction(object /*, style*/) {
@@ -3499,6 +3792,7 @@ function resolveJavascriptUndefined() {
 }
 
 function constructJavascriptUndefined() {
+  /*eslint-disable no-undefined*/
   return undefined;
 }
 
