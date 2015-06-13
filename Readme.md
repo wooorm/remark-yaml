@@ -43,8 +43,11 @@ UMD: globals, AMD, and CommonJS ([uncompressed](mdast-yaml.js) and [compressed](
 ## Table of Contents
 
 *   [Usage](#usage)
+
 *   [API](#api)
+
     *   [mdast.use(yaml, options)](#mdastuseyaml-options)
+
 *   [License](#license)
 
 ## Usage
