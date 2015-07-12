@@ -53,7 +53,6 @@
     "bundle": "browserify --no-builtins -u esprima index.js -s mdastYAML > mdast-yaml.js",
     "postbundle": "esmangle mdast-yaml.js > mdast-yaml.min.js",
     "build-md": "mdast . --output --quiet",
-    "build": "npm run build-md && npm run bundle",
-    "prepublish": "npm run build"
+    "build": "npm run build-md && npm run bundle"
   }
 }
