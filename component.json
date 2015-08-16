@@ -11,6 +11,9 @@
     "mdast"
   ],
   "repository": "wooorm/mdast-yaml",
+  "dependencies": {
+    "wooorm/trim-trailing-lines": "^1.0.0"
+  },
   "scripts": [
     "mdast-yaml.js"
   ]

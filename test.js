@@ -11,11 +11,17 @@ var tjYAML = require('yaml');
 var mdast = require('mdast');
 var mdastYAML = require('./');
 
+/*
+ * Methods.
+ */
+
+var equal = assert.strictEqual;
+
 /**
  * Shortcut to process.
  *
- * @param {string} value
- * @param {Object?} options
+ * @param {string} value - Markdown.
+ * @param {Object?} [options] - Configuration.
  * @return {string}
  */
 function yaml(value, options, parseOnly) {
@@ -31,18 +37,18 @@ function yaml(value, options, parseOnly) {
 
 describe('mdast-yaml()', function () {
     it('should be a function', function () {
-        assert(typeof mdastYAML === 'function');
+        equal(typeof mdastYAML, 'function');
     });
 
     it('should parse and stringify yaml', function () {
-        assert(yaml([
+        equal(yaml([
             '---',
             '"hello": "world"',
             '---',
             '',
             '# Foo bar',
             ''
-        ].join('\n')) === [
+        ].join('\n')), [
             '---',
             'hello: world',
             '---',
@@ -53,13 +59,13 @@ describe('mdast-yaml()', function () {
     });
 
     it('should support empty yaml', function () {
-        assert(yaml([
+        equal(yaml([
             '---',
             '---',
             '',
             '# Foo bar',
             ''
-        ].join('\n')) === [
+        ].join('\n')), [
             '---',
             '---',
             '',
@@ -69,7 +75,7 @@ describe('mdast-yaml()', function () {
     });
 
     it('should accept `parse` and `stringify`', function () {
-        assert(yaml([
+        equal(yaml([
             '---',
             '"hello": "world"',
             '---',
@@ -79,7 +85,7 @@ describe('mdast-yaml()', function () {
         ].join('\n'), {
             'parse': 'load',
             'stringify': 'dump'
-        }) === [
+        }), [
             '---',
             'hello: world',
             '---',
@@ -101,11 +107,11 @@ describe('mdast-yaml()', function () {
 
         assert('yaml' in ast);
         assert('hello' in ast.yaml);
-        assert(ast.yaml.hello === 'world');
+        equal(ast.yaml.hello, 'world');
     });
 
     it('should not stringify yaml when `prettify: false`', function () {
-        assert(yaml([
+        equal(yaml([
             '---',
             '"hello": "world"',
             '---',
@@ -114,7 +120,7 @@ describe('mdast-yaml()', function () {
             ''
         ].join('\n'), {
             'prettify': false
-        }) === [
+        }), [
             '---',
             '"hello": "world"',
             '---',
@@ -143,7 +149,7 @@ describe('mdast-yaml()', function () {
          */
 
         assert('yaml' in ast);
-        assert(ast.yaml === 'hello');
+        equal(ast.yaml, 'hello');
     });
 
     it('should accept `library: "js-yaml"`', function () {
@@ -196,9 +202,9 @@ describe('mdast-yaml()', function () {
          * Assertion.
          */
         function onparse(node) {
-            assert(node.type === 'yaml');
-            assert(node.value === '"hello": "world"');
-            assert(node.yaml.hello === 'world');
+            equal(node.type, 'yaml');
+            equal(node.value, '"hello": "world"');
+            equal(node.yaml.hello, 'world');
 
             isInvoked = true;
         }
@@ -214,7 +220,7 @@ describe('mdast-yaml()', function () {
             'onparse': onparse
         });
 
-        assert(isInvoked === true);
+        equal(isInvoked, true);
     });
 
     it('should accept `onstringify`', function () {
@@ -224,9 +230,9 @@ describe('mdast-yaml()', function () {
          * Assertion.
          */
         function onstringify(node) {
-            assert(node.type === 'yaml');
-            assert(node.value === 'hello: world');
-            assert(node.yaml.hello === 'world');
+            equal(node.type, 'yaml');
+            equal(node.value, 'hello: world');
+            equal(node.yaml.hello, 'world');
 
             isInvoked = true;
         }
@@ -242,6 +248,6 @@ describe('mdast-yaml()', function () {
             'onstringify': onstringify
         });
 
-        assert(isInvoked === true);
+        equal(isInvoked, true);
     });
 });

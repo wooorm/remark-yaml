@@ -4,6 +4,7 @@
  * Dependencies.
  */
 
+var trimTrailingLines = require('trim-trailing-lines');
 var jsYAML = null;
 var fs = {};
 var path = {};
@@ -46,7 +47,7 @@ var JS_YAML = 'js-yaml';
 /**
  * Find a library.
  *
- * @param {string} pathlike
+ * @param {string} pathlike - File-path-like value.
  * @return {Object}
  */
 function loadLibrary(pathlike) {
@@ -86,22 +87,10 @@ function loadLibrary(pathlike) {
 function noop() {}
 
 /**
- * Remove trailing newline.
- *
- * @param {string} value
- * @return {string}
- */
-function removeLastLine(value) {
-    return value && value.charAt(value.length === '\n') ?
-        value.slice(0, -1) :
-        value || '';
-}
-
-/**
  * Parse factory.
  *
  * @param {Function} tokenize - Previous parser.
- * @param {Object} settings
+ * @param {Object} settings - Configuration.
  */
 function parse(tokenize, settings) {
     var parser = settings.library || jsYAML;
@@ -112,13 +101,13 @@ function parse(tokenize, settings) {
      * Parse YAML, if available, using the bound
      * library and method.
      *
-     * @param {function(string)} eat
+     * @param {function(string)} eat - Eater.
      * @param {string} $0 - Whole value.
      * @param {string} $1 - YAML.
      */
     return function (eat, $0, $1) {
         var data = parser[method]($1 || '') || '';
-        var node = this.renderRaw('yaml', removeLastLine($1));
+        var node = this.renderRaw('yaml', trimTrailingLines($1 || ''));
 
         Object.defineProperty(node, 'yaml', {
             'configurable': true,
@@ -137,7 +126,7 @@ function parse(tokenize, settings) {
  * Stringify factory.
  *
  * @param {Function} compile - Previous compiler.
- * @param {Object} settings
+ * @param {Object} settings - Configuration.
  */
 function stringify(compile, settings) {
     var stringifier = settings.library || jsYAML;
@@ -152,12 +141,12 @@ function stringify(compile, settings) {
      * Stringify YAML, if available, using the bound
      * library and method.
      *
-     * @param {Object} node
+     * @param {MDASTYAMLNode} node - YAML node.
      * @return {string}
      */
     return function (node) {
         if (node.yaml) {
-            node.value = removeLastLine(stringifier[method](node.yaml));
+            node.value = trimTrailingLines(stringifier[method](node.yaml));
         }
 
         callback(node, this);
@@ -169,8 +158,8 @@ function stringify(compile, settings) {
 /**
  * Modify mdast to parse/stringify YAML.
  *
- * @param {MDAST} mdast
- * @param {Object?} options
+ * @param {MDAST} mdast - Instance
+ * @param {Object?} [options] - Configuration.
  */
 function attacher(mdast, options) {
     var tokenizers = mdast.Parser.prototype.blockTokenizers;
