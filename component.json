@@ -1,6 +1,6 @@
 {
   "name": "mdast-yaml",
-  "version": "0.3.2",
+  "version": "1.0.0",
   "description": "Parse and stringify YAML code blocks in mdast",
   "license": "MIT",
   "keywords": [
