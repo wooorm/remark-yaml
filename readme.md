@@ -1,4 +1,4 @@
-# mdast-yaml [![Build Status](https://img.shields.io/travis/wooorm/mdast-yaml.svg?style=flat)](https://travis-ci.org/wooorm/mdast-yaml) [![Coverage Status](https://img.shields.io/coveralls/wooorm/mdast-yaml.svg?style=flat)](https://coveralls.io/r/wooorm/mdast-yaml?branch=master)
+# mdast-yaml [![Build Status](https://img.shields.io/travis/wooorm/mdast-yaml.svg)](https://travis-ci.org/wooorm/mdast-yaml) [![Coverage Status](https://img.shields.io/codecov/c/github/wooorm/mdast-yaml.svg)](https://codecov.io/github/wooorm/mdast-yaml)
 
 Parse and stringify YAML code blocks in **mdast**.
 
