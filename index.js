@@ -1,3 +1,11 @@
+/**
+ * @author Titus Wormer
+ * @copyright 2015 Titus Wormer
+ * @license MIT
+ * @module mdast:yaml
+ * @fileoverview Parse and stringify YAML code blocks in mdast.
+ */
+
 'use strict';
 
 /*
