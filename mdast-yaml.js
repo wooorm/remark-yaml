@@ -111,24 +111,26 @@ function parse(tokenize, settings) {
      * Parse YAML, if available, using the bound
      * library and method.
      *
-     * @param {function(string)} eat - Eater.
-     * @param {string} $0 - Whole value.
-     * @param {string} $1 - YAML.
+     * @return {Node?} - YAML node.
      */
-    return function (eat, $0, $1) {
-        var data = parser[method]($1 || '') || '';
-        var node = this.renderRaw('yaml', trimTrailingLines($1 || ''));
+    return function () {
+        var node = tokenize.apply(this, arguments);
+        var data;
 
-        Object.defineProperty(node, 'yaml', {
-            'configurable': true,
-            'writable': true,
-            'enumerable': false,
-            'value': data
-        });
+        if (node && node.value) {
+            data = parser[method](node.value || '');
 
-        eat($0)(node);
+            Object.defineProperty(node, 'yaml', {
+                'configurable': true,
+                'writable': true,
+                'enumerable': false,
+                'value': data
+            });
 
-        callback(node, this);
+            callback(node, this);
+        }
+
+        return node;
     };
 }
 
@@ -191,7 +193,206 @@ function attacher(mdast, options) {
 module.exports = attacher;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"fs":undefined,"js-yaml":2,"path":undefined,"trim-trailing-lines":32}],2:[function(require,module,exports){
+},{"fs":undefined,"js-yaml":4,"path":undefined,"trim-trailing-lines":34}],2:[function(require,module,exports){
+/*!
+ * node-inherit
+ * Copyright(c) 2011 Dmitry Filatov <dfilatov@yandex-team.ru>
+ * MIT Licensed
+ */
+
+module.exports = require('./lib/inherit');
+
+},{"./lib/inherit":3}],3:[function(require,module,exports){
+/**
+ * @module inherit
+ * @version 2.2.2
+ * @author Filatov Dmitry <dfilatov@yandex-team.ru>
+ * @description This module provides some syntax sugar for "class" declarations, constructors, mixins, "super" calls and static members.
+ */
+
+(function(global) {
+
+var hasIntrospection = (function(){'_';}).toString().indexOf('_') > -1,
+    emptyBase = function() {},
+    hasOwnProperty = Object.prototype.hasOwnProperty,
+    objCreate = Object.create || function(ptp) {
+        var inheritance = function() {};
+        inheritance.prototype = ptp;
+        return new inheritance();
+    },
+    objKeys = Object.keys || function(obj) {
+        var res = [];
+        for(var i in obj) {
+            hasOwnProperty.call(obj, i) && res.push(i);
+        }
+        return res;
+    },
+    extend = function(o1, o2) {
+        for(var i in o2) {
+            hasOwnProperty.call(o2, i) && (o1[i] = o2[i]);
+        }
+
+        return o1;
+    },
+    toStr = Object.prototype.toString,
+    isArray = Array.isArray || function(obj) {
+        return toStr.call(obj) === '[object Array]';
+    },
+    isFunction = function(obj) {
+        return toStr.call(obj) === '[object Function]';
+    },
+    noOp = function() {},
+    needCheckProps = true,
+    testPropObj = { toString : '' };
+
+for(var i in testPropObj) { // fucking ie hasn't toString, valueOf in for
+    testPropObj.hasOwnProperty(i) && (needCheckProps = false);
+}
+
+var specProps = needCheckProps? ['toString', 'valueOf'] : null;
+
+function getPropList(obj) {
+    var res = objKeys(obj);
+    if(needCheckProps) {
+        var specProp, i = 0;
+        while(specProp = specProps[i++]) {
+            obj.hasOwnProperty(specProp) && res.push(specProp);
+        }
+    }
+
+    return res;
+}
+
+function override(base, res, add) {
+    var addList = getPropList(add),
+        j = 0, len = addList.length,
+        name, prop;
+    while(j < len) {
+        if((name = addList[j++]) === '__self') {
+            continue;
+        }
+        prop = add[name];
+        if(isFunction(prop) &&
+                (!hasIntrospection || prop.toString().indexOf('.__base') > -1)) {
+            res[name] = (function(name, prop) {
+                var baseMethod = base[name]?
+                        base[name] :
+                        name === '__constructor'? // case of inheritance from plane function
+                            res.__self.__parent :
+                            noOp;
+                return function() {
+                    var baseSaved = this.__base;
+                    this.__base = baseMethod;
+                    var res = prop.apply(this, arguments);
+                    this.__base = baseSaved;
+                    return res;
+                };
+            })(name, prop);
+        } else {
+            res[name] = prop;
+        }
+    }
+}
+
+function applyMixins(mixins, res) {
+    var i = 1, mixin;
+    while(mixin = mixins[i++]) {
+        res?
+            isFunction(mixin)?
+                inherit.self(res, mixin.prototype, mixin) :
+                inherit.self(res, mixin) :
+            res = isFunction(mixin)?
+                inherit(mixins[0], mixin.prototype, mixin) :
+                inherit(mixins[0], mixin);
+    }
+    return res || mixins[0];
+}
+
+/**
+* Creates class
+* @exports
+* @param {Function|Array} [baseClass|baseClassAndMixins] class (or class and mixins) to inherit from
+* @param {Object} prototypeFields
+* @param {Object} [staticFields]
+* @returns {Function} class
+*/
+function inherit() {
+    var args = arguments,
+        withMixins = isArray(args[0]),
+        hasBase = withMixins || isFunction(args[0]),
+        base = hasBase? withMixins? applyMixins(args[0]) : args[0] : emptyBase,
+        props = args[hasBase? 1 : 0] || {},
+        staticProps = args[hasBase? 2 : 1],
+        res = props.__constructor || (hasBase && base.prototype.__constructor)?
+            function() {
+                return this.__constructor.apply(this, arguments);
+            } :
+            hasBase?
+                function() {
+                    return base.apply(this, arguments);
+                } :
+                function() {};
+
+    if(!hasBase) {
+        res.prototype = props;
+        res.prototype.__self = res.prototype.constructor = res;
+        return extend(res, staticProps);
+    }
+
+    extend(res, base);
+
+    res.__parent = base;
+
+    var basePtp = base.prototype,
+        resPtp = res.prototype = objCreate(basePtp);
+
+    resPtp.__self = resPtp.constructor = res;
+
+    props && override(basePtp, resPtp, props);
+    staticProps && override(base, res, staticProps);
+
+    return res;
+}
+
+inherit.self = function() {
+    var args = arguments,
+        withMixins = isArray(args[0]),
+        base = withMixins? applyMixins(args[0], args[0][0]) : args[0],
+        props = args[1],
+        staticProps = args[2],
+        basePtp = base.prototype;
+
+    props && override(basePtp, basePtp, props);
+    staticProps && override(base, base, staticProps);
+
+    return base;
+};
+
+var defineAsGlobal = true;
+if(typeof exports === 'object') {
+    module.exports = inherit;
+    defineAsGlobal = false;
+}
+
+if(typeof modules === 'object') {
+    modules.define('inherit', function(provide) {
+        provide(inherit);
+    });
+    defineAsGlobal = false;
+}
+
+if(typeof define === 'function') {
+    define(function(require, exports, module) {
+        module.exports = inherit;
+    });
+    defineAsGlobal = false;
+}
+
+defineAsGlobal && (global.inherit = inherit);
+
+})(this);
+
+},{}],4:[function(require,module,exports){
 'use strict';
 
 
@@ -200,7 +401,7 @@ var yaml = require('./lib/js-yaml.js');
 
 module.exports = yaml;
 
-},{"./lib/js-yaml.js":3}],3:[function(require,module,exports){
+},{"./lib/js-yaml.js":5}],5:[function(require,module,exports){
 'use strict';
 
 
@@ -230,7 +431,7 @@ module.exports.dump                = dumper.dump;
 module.exports.safeDump            = dumper.safeDump;
 module.exports.YAMLException       = require('./js-yaml/exception');
 
-// Deprecared schema names from JS-YAML 2.0.x
+// Deprecated schema names from JS-YAML 2.0.x
 module.exports.MINIMAL_SCHEMA = require('./js-yaml/schema/failsafe');
 module.exports.SAFE_SCHEMA    = require('./js-yaml/schema/default_safe');
 module.exports.DEFAULT_SCHEMA = require('./js-yaml/schema/default_full');
@@ -241,7 +442,7 @@ module.exports.parse          = deprecated('parse');
 module.exports.compose        = deprecated('compose');
 module.exports.addConstructor = deprecated('addConstructor');
 
-},{"./js-yaml/dumper":5,"./js-yaml/exception":6,"./js-yaml/loader":7,"./js-yaml/schema":9,"./js-yaml/schema/core":10,"./js-yaml/schema/default_full":11,"./js-yaml/schema/default_safe":12,"./js-yaml/schema/failsafe":13,"./js-yaml/schema/json":14,"./js-yaml/type":15}],4:[function(require,module,exports){
+},{"./js-yaml/dumper":7,"./js-yaml/exception":8,"./js-yaml/loader":9,"./js-yaml/schema":11,"./js-yaml/schema/core":12,"./js-yaml/schema/default_full":13,"./js-yaml/schema/default_safe":14,"./js-yaml/schema/failsafe":15,"./js-yaml/schema/json":16,"./js-yaml/type":17}],6:[function(require,module,exports){
 'use strict';
 
 
@@ -304,7 +505,7 @@ module.exports.repeat         = repeat;
 module.exports.isNegativeZero = isNegativeZero;
 module.exports.extend         = extend;
 
-},{}],5:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 'use strict';
 
 /*eslint-disable no-use-before-define*/
@@ -422,6 +623,7 @@ function State(options) {
   this.flowLevel   = (common.isNothing(options['flowLevel']) ? -1 : options['flowLevel']);
   this.styleMap    = compileStyleMap(this.schema, options['styles'] || null);
   this.sortKeys    = options['sortKeys'] || false;
+  this.lineWidth    = options['lineWidth'] || 80;
 
   this.implicitTypes = this.schema.compiledImplicit;
   this.explicitTypes = this.schema.compiledExplicit;
@@ -515,7 +717,7 @@ StringBuilder.prototype.finish = function () {
   }
 };
 
-function writeScalar(state, object, level) {
+function writeScalar(state, object, level, iskey) {
   var simple, first, spaceWrap, folded, literal, single, double,
       sawLineFeed, linePosition, longestLine, indent, max, character,
       position, escapeSeq, hexEsc, previous, lineLength, modifier,
@@ -545,14 +747,14 @@ function writeScalar(state, object, level) {
     simple = false;
   }
 
-  // can only use > and | if not wrapped in spaces.
+  // can only use > and | if not wrapped in spaces or is not a key.
   if (spaceWrap) {
     simple = false;
     folded = false;
     literal = false;
   } else {
-    folded = true;
-    literal = true;
+    folded = !iskey;
+    literal = !iskey;
   }
 
   single = true;
@@ -563,7 +765,13 @@ function writeScalar(state, object, level) {
   longestLine = 0;
 
   indent = state.indent * level;
-  max = 80;
+  max = state.lineWidth;
+  if (max === -1) {
+    // Replace -1 with biggest ingeger number according to
+    // http://ecma262-5.com/ELS5_HTML.htm#Section_8.5
+    max = 9007199254740991;
+  }
+
   if (indent < 40) {
     max -= indent;
   } else {
@@ -929,7 +1137,7 @@ function writeBlockMapping(state, level, object, compact) {
     objectKey = objectKeyList[index];
     objectValue = object[objectKey];
 
-    if (!writeNode(state, level + 1, objectKey, true, true)) {
+    if (!writeNode(state, level + 1, objectKey, true, true, true)) {
       continue; // Skip this pair because of invalid key.
     }
 
@@ -1008,7 +1216,7 @@ function detectType(state, object, explicit) {
 // Serializes `object` and writes it to global `result`.
 // Returns true on success, or false on invalid object.
 //
-function writeNode(state, level, object, block, compact) {
+function writeNode(state, level, object, block, compact, iskey) {
   state.tag = null;
   state.dump = object;
 
@@ -1022,10 +1230,6 @@ function writeNode(state, level, object, block, compact) {
     block = (0 > state.flowLevel || state.flowLevel > level);
   }
 
-  if ((null !== state.tag && '?' !== state.tag) || (2 !== state.indent && level > 0)) {
-    compact = false;
-  }
-
   var objectOrArray = '[object Object]' === type || '[object Array]' === type,
       duplicateIndex,
       duplicate;
@@ -1033,6 +1237,10 @@ function writeNode(state, level, object, block, compact) {
   if (objectOrArray) {
     duplicateIndex = state.duplicates.indexOf(object);
     duplicate = duplicateIndex !== -1;
+  }
+
+  if ((null !== state.tag && '?' !== state.tag) || duplicate || (2 !== state.indent && level > 0)) {
+    compact = false;
   }
 
   if (duplicate && state.usedDuplicates[duplicateIndex]) {
@@ -1045,7 +1253,7 @@ function writeNode(state, level, object, block, compact) {
       if (block && (0 !== Object.keys(state.dump).length)) {
         writeBlockMapping(state, level, state.dump, compact);
         if (duplicate) {
-          state.dump = '&ref_' + duplicateIndex + (0 === level ? '\n' : '') + state.dump;
+          state.dump = '&ref_' + duplicateIndex + state.dump;
         }
       } else {
         writeFlowMapping(state, level, state.dump);
@@ -1057,7 +1265,7 @@ function writeNode(state, level, object, block, compact) {
       if (block && (0 !== state.dump.length)) {
         writeBlockSequence(state, level, state.dump, compact);
         if (duplicate) {
-          state.dump = '&ref_' + duplicateIndex + (0 === level ? '\n' : '') + state.dump;
+          state.dump = '&ref_' + duplicateIndex + state.dump;
         }
       } else {
         writeFlowSequence(state, level, state.dump);
@@ -1067,7 +1275,7 @@ function writeNode(state, level, object, block, compact) {
       }
     } else if ('[object String]' === type) {
       if ('?' !== state.tag) {
-        writeScalar(state, state.dump, level);
+        writeScalar(state, state.dump, level, iskey);
       }
     } else {
       if (state.skipInvalid) {
@@ -1099,8 +1307,7 @@ function getDuplicateReferences(object, state) {
 }
 
 function inspectNode(object, objects, duplicatesIndexes) {
-  var type = _toString.call(object),
-      objectKeyList,
+  var objectKeyList,
       index,
       length;
 
@@ -1148,22 +1355,43 @@ function safeDump(input, options) {
 module.exports.dump     = dump;
 module.exports.safeDump = safeDump;
 
-},{"./common":4,"./exception":6,"./schema/default_full":11,"./schema/default_safe":12}],6:[function(require,module,exports){
+},{"./common":6,"./exception":8,"./schema/default_full":13,"./schema/default_safe":14}],8:[function(require,module,exports){
+// YAML error class. http://stackoverflow.com/questions/8458984
+//
 'use strict';
 
 
+var inherits = require('inherit');
+
+
 function YAMLException(reason, mark) {
-  this.name    = 'YAMLException';
-  this.reason  = reason;
-  this.mark    = mark;
-  this.message = this.toString(false);
+  // Super constructor
+  Error.call(this);
+
+  // Include stack trace in error object
+  if (Error.captureStackTrace) {
+    // Chrome and NodeJS
+    Error.captureStackTrace(this, this.constructor);
+  } else {
+    // FF, IE 10+ and Safari 6+. Fallback for others
+    this.stack = (new Error()).stack || '';
+  }
+
+  this.name = 'YAMLException';
+  this.reason = reason;
+  this.mark = mark;
+  this.message = (this.reason || '(unknown reason)') + (this.mark ? ' ' + this.mark.toString() : '');
 }
 
 
-YAMLException.prototype.toString = function toString(compact) {
-  var result;
+// Inherit from Error
+inherits(YAMLException, Error);
 
-  result = 'JS-YAML: ' + (this.reason || '(unknown reason)');
+
+YAMLException.prototype.toString = function toString(compact) {
+  var result = this.name + ': ';
+
+  result += this.reason || '(unknown reason)';
 
   if (!compact && this.mark) {
     result += ' ' + this.mark.toString();
@@ -1175,7 +1403,7 @@ YAMLException.prototype.toString = function toString(compact) {
 
 module.exports = YAMLException;
 
-},{}],7:[function(require,module,exports){
+},{"inherit":2}],9:[function(require,module,exports){
 'use strict';
 
 /*eslint-disable max-len,no-use-before-define*/
@@ -1345,12 +1573,8 @@ function throwError(state, message) {
 }
 
 function throwWarning(state, message) {
-  var error = generateError(state, message);
-
   if (state.onWarning) {
-    state.onWarning.call(null, error);
-  } else {
-    throw error;
+    state.onWarning.call(null, generateError(state, message));
   }
 }
 
@@ -1434,6 +1658,8 @@ function captureSegment(state, start, end, checkJson) {
           throwError(state, 'expected valid JSON character');
         }
       }
+    } else if (PATTERN_NON_PRINTABLE.test(_result)) {
+      throwError(state, 'the stream contains non-printable characters');
     }
 
     state.result += _result;
@@ -1731,7 +1957,7 @@ function readDoubleQuotedScalar(state, nodeIndent) {
       captureEnd,
       hexLength,
       hexResult,
-      tmp, tmpEsc,
+      tmp,
       ch;
 
   ch = state.input.charCodeAt(state.position);
@@ -2035,6 +2261,7 @@ function readBlockScalar(state, nodeIndent) {
       state.result += common.repeat('\n', emptyLines + 1);
     } else {
       // In case of the first content line - count only empty lines.
+      state.result += common.repeat('\n', emptyLines);
     }
 
     detectedIndent = true;
@@ -2392,8 +2619,6 @@ function readAnchorProperty(state) {
 
 function readAlias(state) {
   var _position, alias,
-      len = state.length,
-      input = state.input,
       ch;
 
   ch = state.input.charCodeAt(state.position);
@@ -2435,8 +2660,7 @@ function composeNode(state, parentIndent, nodeContext, allowToSeek, allowCompact
       typeQuantity,
       type,
       flowIndent,
-      blockIndent,
-      _result;
+      blockIndent;
 
   state.tag    = null;
   state.anchor = null;
@@ -2567,7 +2791,7 @@ function composeNode(state, parentIndent, nodeContext, allowToSeek, allowCompact
         }
       }
     } else {
-      throwWarning(state, 'unknown tag !<' + state.tag + '>');
+      throwError(state, 'unknown tag !<' + state.tag + '>');
     }
   }
 
@@ -2706,10 +2930,6 @@ function loadDocuments(input, options) {
 
   var state = new State(input, options);
 
-  if (PATTERN_NON_PRINTABLE.test(state.input)) {
-    throwError(state, 'the stream contains non-printable characters');
-  }
-
   // Use 0 as string terminator. That significantly simplifies bounds check.
   state.input += '\0';
 
@@ -2736,7 +2956,7 @@ function loadAll(input, iterator, options) {
 
 
 function load(input, options) {
-  var documents = loadDocuments(input, options), index, length;
+  var documents = loadDocuments(input, options);
 
   if (0 === documents.length) {
     /*eslint-disable no-undefined*/
@@ -2763,7 +2983,7 @@ module.exports.load        = load;
 module.exports.safeLoadAll = safeLoadAll;
 module.exports.safeLoad    = safeLoad;
 
-},{"./common":4,"./exception":6,"./mark":8,"./schema/default_full":11,"./schema/default_safe":12}],8:[function(require,module,exports){
+},{"./common":6,"./exception":8,"./mark":10,"./schema/default_full":13,"./schema/default_safe":14}],10:[function(require,module,exports){
 'use strict';
 
 
@@ -2843,7 +3063,7 @@ Mark.prototype.toString = function toString(compact) {
 
 module.exports = Mark;
 
-},{"./common":4}],9:[function(require,module,exports){
+},{"./common":6}],11:[function(require,module,exports){
 'use strict';
 
 /*eslint-disable max-len*/
@@ -2949,7 +3169,7 @@ Schema.create = function createSchema() {
 
 module.exports = Schema;
 
-},{"./common":4,"./exception":6,"./type":15}],10:[function(require,module,exports){
+},{"./common":6,"./exception":8,"./type":17}],12:[function(require,module,exports){
 // Standard YAML's Core schema.
 // http://www.yaml.org/spec/1.2/spec.html#id2804923
 //
@@ -2969,7 +3189,7 @@ module.exports = new Schema({
   ]
 });
 
-},{"../schema":9,"./json":14}],11:[function(require,module,exports){
+},{"../schema":11,"./json":16}],13:[function(require,module,exports){
 // JS-YAML's default schema for `load` function.
 // It is not described in the YAML specification.
 //
@@ -2996,7 +3216,7 @@ module.exports = Schema.DEFAULT = new Schema({
   ]
 });
 
-},{"../schema":9,"../type/js/function":20,"../type/js/regexp":21,"../type/js/undefined":22,"./default_safe":12}],12:[function(require,module,exports){
+},{"../schema":11,"../type/js/function":22,"../type/js/regexp":23,"../type/js/undefined":24,"./default_safe":14}],14:[function(require,module,exports){
 // JS-YAML's default schema for `safeLoad` function.
 // It is not described in the YAML specification.
 //
@@ -3026,7 +3246,7 @@ module.exports = new Schema({
   ]
 });
 
-},{"../schema":9,"../type/binary":16,"../type/merge":24,"../type/omap":26,"../type/pairs":27,"../type/set":29,"../type/timestamp":31,"./core":10}],13:[function(require,module,exports){
+},{"../schema":11,"../type/binary":18,"../type/merge":26,"../type/omap":28,"../type/pairs":29,"../type/set":31,"../type/timestamp":33,"./core":12}],15:[function(require,module,exports){
 // Standard YAML's Failsafe schema.
 // http://www.yaml.org/spec/1.2/spec.html#id2802346
 
@@ -3045,7 +3265,7 @@ module.exports = new Schema({
   ]
 });
 
-},{"../schema":9,"../type/map":23,"../type/seq":28,"../type/str":30}],14:[function(require,module,exports){
+},{"../schema":11,"../type/map":25,"../type/seq":30,"../type/str":32}],16:[function(require,module,exports){
 // Standard YAML's JSON schema.
 // http://www.yaml.org/spec/1.2/spec.html#id2803231
 //
@@ -3072,7 +3292,7 @@ module.exports = new Schema({
   ]
 });
 
-},{"../schema":9,"../type/bool":17,"../type/float":18,"../type/int":19,"../type/null":25,"./failsafe":13}],15:[function(require,module,exports){
+},{"../schema":11,"../type/bool":19,"../type/float":20,"../type/int":21,"../type/null":27,"./failsafe":15}],17:[function(require,module,exports){
 'use strict';
 
 var YAMLException = require('./exception');
@@ -3135,7 +3355,7 @@ function Type(tag, options) {
 
 module.exports = Type;
 
-},{"./exception":6}],16:[function(require,module,exports){
+},{"./exception":8}],18:[function(require,module,exports){
 'use strict';
 
 /*eslint-disable no-bitwise*/
@@ -3155,7 +3375,7 @@ function resolveYamlBinary(data) {
     return false;
   }
 
-  var code, idx, bitlen = 0, len = 0, max = data.length, map = BASE64_MAP;
+  var code, idx, bitlen = 0, max = data.length, map = BASE64_MAP;
 
   // Convert one by one.
   for (idx = 0; idx < max; idx++) {
@@ -3175,7 +3395,7 @@ function resolveYamlBinary(data) {
 }
 
 function constructYamlBinary(data) {
-  var code, idx, tailbits,
+  var idx, tailbits,
       input = data.replace(/[\r\n=]/g, ''), // remove CR/LF & padding to simplify scan
       max = input.length,
       map = BASE64_MAP,
@@ -3271,7 +3491,7 @@ module.exports = new Type('tag:yaml.org,2002:binary', {
   represent: representYamlBinary
 });
 
-},{"../type":15,"buffer":undefined}],17:[function(require,module,exports){
+},{"../type":17,"buffer":undefined}],19:[function(require,module,exports){
 'use strict';
 
 var Type = require('../type');
@@ -3310,7 +3530,7 @@ module.exports = new Type('tag:yaml.org,2002:bool', {
   defaultStyle: 'lowercase'
 });
 
-},{"../type":15}],18:[function(require,module,exports){
+},{"../type":17}],20:[function(require,module,exports){
 'use strict';
 
 var common = require('../common');
@@ -3327,8 +3547,6 @@ function resolveYamlFloat(data) {
   if (null === data) {
     return false;
   }
-
-  var value, sign, base, digits;
 
   if (!YAML_FLOAT_PATTERN.test(data)) {
     return false;
@@ -3372,7 +3590,12 @@ function constructYamlFloat(data) {
   return sign * parseFloat(value, 10);
 }
 
+
+var SCIENTIFIC_WITHOUT_DOT = /^[-+]?[0-9]+e/;
+
 function representYamlFloat(object, style) {
+  var res;
+
   if (isNaN(object)) {
     switch (style) {
     case 'lowercase':
@@ -3403,7 +3626,13 @@ function representYamlFloat(object, style) {
   } else if (common.isNegativeZero(object)) {
     return '-0.0';
   }
-  return object.toString(10);
+
+  res = object.toString(10);
+
+  // JS stringifier can build scientific format without dots: 5e-100,
+  // while YAML requres dot: 5.e-100. Fix it with simple hack
+
+  return SCIENTIFIC_WITHOUT_DOT.test(res) ? res.replace('e', '.e') : res;
 }
 
 function isFloat(object) {
@@ -3420,7 +3649,7 @@ module.exports = new Type('tag:yaml.org,2002:float', {
   defaultStyle: 'lowercase'
 });
 
-},{"../common":4,"../type":15}],19:[function(require,module,exports){
+},{"../common":6,"../type":17}],21:[function(require,module,exports){
 'use strict';
 
 var common = require('../common');
@@ -3605,7 +3834,7 @@ module.exports = new Type('tag:yaml.org,2002:int', {
   }
 });
 
-},{"../common":4,"../type":15}],20:[function(require,module,exports){
+},{"../common":6,"../type":17}],22:[function(require,module,exports){
 'use strict';
 
 var esprima;
@@ -3633,9 +3862,7 @@ function resolveJavascriptFunction(data) {
 
   try {
     var source = '(' + data + ')',
-        ast    = esprima.parse(source, { range: true }),
-        params = [],
-        body;
+        ast    = esprima.parse(source, { range: true });
 
     if ('Program'             !== ast.type         ||
         1                     !== ast.body.length  ||
@@ -3693,7 +3920,7 @@ module.exports = new Type('tag:yaml.org,2002:js/function', {
   represent: representJavascriptFunction
 });
 
-},{"../../type":15,"esprima":undefined}],21:[function(require,module,exports){
+},{"../../type":17,"esprima":undefined}],23:[function(require,module,exports){
 'use strict';
 
 var Type = require('../../type');
@@ -3726,7 +3953,6 @@ function resolveJavascriptRegExp(data) {
   }
 
   try {
-    var dummy = new RegExp(regexp, modifiers);
     return true;
   } catch (error) {
     return false;
@@ -3779,7 +4005,7 @@ module.exports = new Type('tag:yaml.org,2002:js/regexp', {
   represent: representJavascriptRegExp
 });
 
-},{"../../type":15}],22:[function(require,module,exports){
+},{"../../type":17}],24:[function(require,module,exports){
 'use strict';
 
 var Type = require('../../type');
@@ -3809,7 +4035,7 @@ module.exports = new Type('tag:yaml.org,2002:js/undefined', {
   represent: representJavascriptUndefined
 });
 
-},{"../../type":15}],23:[function(require,module,exports){
+},{"../../type":17}],25:[function(require,module,exports){
 'use strict';
 
 var Type = require('../type');
@@ -3819,7 +4045,7 @@ module.exports = new Type('tag:yaml.org,2002:map', {
   construct: function (data) { return null !== data ? data : {}; }
 });
 
-},{"../type":15}],24:[function(require,module,exports){
+},{"../type":17}],26:[function(require,module,exports){
 'use strict';
 
 var Type = require('../type');
@@ -3833,7 +4059,7 @@ module.exports = new Type('tag:yaml.org,2002:merge', {
   resolve: resolveYamlMerge
 });
 
-},{"../type":15}],25:[function(require,module,exports){
+},{"../type":17}],27:[function(require,module,exports){
 'use strict';
 
 var Type = require('../type');
@@ -3871,7 +4097,7 @@ module.exports = new Type('tag:yaml.org,2002:null', {
   defaultStyle: 'lowercase'
 });
 
-},{"../type":15}],26:[function(require,module,exports){
+},{"../type":17}],28:[function(require,module,exports){
 'use strict';
 
 var Type = require('../type');
@@ -3929,7 +4155,7 @@ module.exports = new Type('tag:yaml.org,2002:omap', {
   construct: constructYamlOmap
 });
 
-},{"../type":15}],27:[function(require,module,exports){
+},{"../type":17}],29:[function(require,module,exports){
 'use strict';
 
 var Type = require('../type');
@@ -3992,7 +4218,7 @@ module.exports = new Type('tag:yaml.org,2002:pairs', {
   construct: constructYamlPairs
 });
 
-},{"../type":15}],28:[function(require,module,exports){
+},{"../type":17}],30:[function(require,module,exports){
 'use strict';
 
 var Type = require('../type');
@@ -4002,7 +4228,7 @@ module.exports = new Type('tag:yaml.org,2002:seq', {
   construct: function (data) { return null !== data ? data : []; }
 });
 
-},{"../type":15}],29:[function(require,module,exports){
+},{"../type":17}],31:[function(require,module,exports){
 'use strict';
 
 var Type = require('../type');
@@ -4037,7 +4263,7 @@ module.exports = new Type('tag:yaml.org,2002:set', {
   construct: constructYamlSet
 });
 
-},{"../type":15}],30:[function(require,module,exports){
+},{"../type":17}],32:[function(require,module,exports){
 'use strict';
 
 var Type = require('../type');
@@ -4047,7 +4273,7 @@ module.exports = new Type('tag:yaml.org,2002:str', {
   construct: function (data) { return null !== data ? data : ''; }
 });
 
-},{"../type":15}],31:[function(require,module,exports){
+},{"../type":17}],33:[function(require,module,exports){
 'use strict';
 
 var Type = require('../type');
@@ -4069,12 +4295,7 @@ function resolveYamlTimestamp(data) {
     return false;
   }
 
-  var match, year, month, day, hour, minute, second, fraction = 0,
-      delta = null, tz_hour, tz_minute, date;
-
-  match = YAML_TIMESTAMP_REGEXP.exec(data);
-
-  if (null === match) {
+  if (YAML_TIMESTAMP_REGEXP.exec(data) === null) {
     return false;
   }
 
@@ -4147,7 +4368,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
   represent: representYamlTimestamp
 });
 
-},{"../type":15}],32:[function(require,module,exports){
+},{"../type":17}],34:[function(require,module,exports){
 'use strict';
 
 /*

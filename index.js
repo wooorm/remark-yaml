@@ -109,24 +109,26 @@ function parse(tokenize, settings) {
      * Parse YAML, if available, using the bound
      * library and method.
      *
-     * @param {function(string)} eat - Eater.
-     * @param {string} $0 - Whole value.
-     * @param {string} $1 - YAML.
+     * @return {Node?} - YAML node.
      */
-    return function (eat, $0, $1) {
-        var data = parser[method]($1 || '') || '';
-        var node = this.renderRaw('yaml', trimTrailingLines($1 || ''));
+    return function () {
+        var node = tokenize.apply(this, arguments);
+        var data;
 
-        Object.defineProperty(node, 'yaml', {
-            'configurable': true,
-            'writable': true,
-            'enumerable': false,
-            'value': data
-        });
+        if (node && node.value) {
+            data = parser[method](node.value || '');
 
-        eat($0)(node);
+            Object.defineProperty(node, 'yaml', {
+                'configurable': true,
+                'writable': true,
+                'enumerable': false,
+                'value': data
+            });
 
-        callback(node, this);
+            callback(node, this);
+        }
+
+        return node;
     };
 }
 
