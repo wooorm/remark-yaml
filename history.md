@@ -5,6 +5,11 @@ mdast:
 
 <!--lint disable no-multiple-toplevel-headings-->
 
+2.0.0-alpha.1 / 2015-12-14
+==========================
+
+*   Refactor for changes in mdast ([e2bcb49](https://github.com/wooorm/mdast-yaml/commit/e2bcb49))
+
 1.0.0 / 2015-08-16
 ==================
 
