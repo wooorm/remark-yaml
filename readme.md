@@ -2,6 +2,14 @@
 
 Parse and stringify YAML code blocks in **remark**.
 
+> :warning: **mdast is currently being renamed to remark** :warning:
+> 
+> This means all plug-ins and relating projects change too, causing many
+> changes across the ecosystem. Expect the dust to settle in roughly a day.
+> 
+> See this project at the previous stable commit
+> [c4a51d1](https://github.com/wooorm/remark-github/commit/c4a51d1).
+
 Supports IE9+ ([mdn](https://developer.mozilla.org/JavaScript/Reference/Global_Objects/Object/defineProperty), [Kangax](http://kangax.github.io/compat-table/es5/#Object.defineProperty)).
 
 ## Installation
