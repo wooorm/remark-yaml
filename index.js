@@ -2,8 +2,8 @@
  * @author Titus Wormer
  * @copyright 2015 Titus Wormer
  * @license MIT
- * @module mdast:yaml
- * @fileoverview Parse and stringify YAML code blocks in mdast.
+ * @module remark:yaml
+ * @fileoverview Parse and stringify YAML code blocks in remark.
  */
 
 'use strict';
@@ -166,14 +166,14 @@ function stringify(compile, settings) {
 }
 
 /**
- * Modify mdast to parse/stringify YAML.
+ * Modify remark to parse/stringify YAML.
  *
- * @param {MDAST} mdast - Instance
+ * @param {Remark} remark - Instance
  * @param {Object?} [options] - Configuration.
  */
-function attacher(mdast, options) {
-    var tokenizers = mdast.Parser.prototype.blockTokenizers;
-    var stringifiers = mdast.Compiler.prototype;
+function attacher(remark, options) {
+    var tokenizers = remark.Parser.prototype.blockTokenizers;
+    var stringifiers = remark.Compiler.prototype;
     var settings = options || {};
 
     if (typeof settings.library === 'string') {

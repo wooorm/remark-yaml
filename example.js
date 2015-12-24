@@ -1,5 +1,5 @@
 var yaml = require('./index.js');
-var mdast = require('mdast').use(yaml);
+var remark = require('remark').use(yaml);
 
 var input = [
     '---',
@@ -11,7 +11,7 @@ var input = [
     ''
 ].join('\n');
 
-var tree = mdast.parse(input);
+var tree = remark.parse(input);
 
 // The `yaml` node now has a `yaml` property.
 var data = tree.children[0].yaml;
@@ -19,6 +19,6 @@ var data = tree.children[0].yaml;
 console.log('json', JSON.stringify(data, 0, 2));
 
 // Stringifying the document (note the formatting) yields:
-var doc = mdast.stringify(tree);
+var doc = remark.stringify(tree);
 
 console.log('markdown', doc);

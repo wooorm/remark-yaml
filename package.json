@@ -1,20 +1,20 @@
 {
-  "name": "mdast-yaml",
+  "name": "remark-yaml",
   "version": "1.0.0",
-  "description": "Parse and stringify YAML code blocks in mdast",
+  "description": "Parse and stringify YAML code blocks in remark",
   "license": "MIT",
   "keywords": [
     "yaml",
     "parse",
     "parser",
     "serializer",
-    "mdast"
+    "remark"
   ],
   "dependencies": {
     "js-yaml": "^3.2.0",
     "trim-trailing-lines": "^1.0.0"
   },
-  "repository": "wooorm/mdast-yaml",
+  "repository": "wooorm/remark-yaml",
   "author": "Titus Wormer <tituswormer@gmail.com>",
   "files": [
     "index.js"
@@ -26,12 +26,12 @@
     "istanbul": "^0.3.0",
     "jscs": "^2.0.0",
     "jscs-jsdoc": "^1.0.0",
-    "mdast": "^3.0.0-alpha.1",
+    "mdast": "^3.0.0-alpha.5",
     "mdast-github": "^2.0.0-alpha.1",
     "mdast-lint": "^2.0.0-alpha.1",
     "mdast-toc": "^1.0.0",
-    "mdast-usage": "^1.0.0",
-    "mdast-yaml-config": "^1.0.0",
+    "mdast-usage": "^2.0.0-alpha.1",
+    "mdast-yaml-config": "^2.0.0-alpha.1",
     "mocha": "^2.0.0",
     "yaml": "^0.2.0"
   },
@@ -44,8 +44,8 @@
     "lint-style": "jscs --reporter inline .",
     "lint": "npm run lint-api && npm run lint-style",
     "make": "npm run lint && npm run test-coverage",
-    "bundle": "browserify --no-builtins -u esprima index.js -s mdastYAML > mdast-yaml.js",
-    "postbundle": "esmangle mdast-yaml.js > mdast-yaml.min.js",
+    "bundle": "browserify --no-builtins -u esprima index.js -s remarkYAML > remark-yaml.js",
+    "postbundle": "esmangle remark-yaml.js > remark-yaml.min.js",
     "build-md": "mdast . --quiet",
     "build": "npm run build-md && npm run bundle"
   }

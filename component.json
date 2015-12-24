@@ -1,20 +1,20 @@
 {
-  "name": "mdast-yaml",
+  "name": "remark-yaml",
   "version": "1.0.0",
-  "description": "Parse and stringify YAML code blocks in mdast",
+  "description": "Parse and stringify YAML code blocks in remark",
   "license": "MIT",
   "keywords": [
     "yaml",
     "parse",
     "parser",
     "serializer",
-    "mdast"
+    "remark"
   ],
-  "repository": "wooorm/mdast-yaml",
+  "repository": "wooorm/remark-yaml",
   "dependencies": {
     "wooorm/trim-trailing-lines": "^1.0.0"
   },
   "scripts": [
-    "mdast-yaml.js"
+    "remark-yaml.js"
   ]
 }

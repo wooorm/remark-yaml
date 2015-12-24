@@ -9,7 +9,7 @@
 var assert = require('assert');
 var tjYAML = require('yaml');
 var mdast = require('mdast');
-var mdastYAML = require('./');
+var remarkYAML = require('./');
 
 /*
  * Methods.
@@ -25,7 +25,7 @@ var equal = assert.strictEqual;
  * @return {string}
  */
 function yaml(value, options, parseOnly) {
-    var processor = mdast.use(mdastYAML, options);
+    var processor = mdast.use(remarkYAML, options);
     var ast = processor.run(processor.parse(value));
 
     return parseOnly ? ast : processor.stringify(ast);
@@ -35,9 +35,9 @@ function yaml(value, options, parseOnly) {
  * Tests.
  */
 
-describe('mdast-yaml()', function () {
+describe('remark-yaml()', function () {
     it('should be a function', function () {
-        equal(typeof mdastYAML, 'function');
+        equal(typeof remarkYAML, 'function');
     });
 
     it('should parse and stringify yaml', function () {

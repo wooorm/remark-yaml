@@ -1,6 +1,6 @@
-# mdast-yaml [![Build Status](https://img.shields.io/travis/wooorm/mdast-yaml.svg)](https://travis-ci.org/wooorm/mdast-yaml) [![Coverage Status](https://img.shields.io/codecov/c/github/wooorm/mdast-yaml.svg)](https://codecov.io/github/wooorm/mdast-yaml)
+# remark-yaml [![Build Status](https://img.shields.io/travis/wooorm/remark-yaml.svg)](https://travis-ci.org/wooorm/remark-yaml) [![Coverage Status](https://img.shields.io/codecov/c/github/wooorm/remark-yaml.svg)](https://codecov.io/github/wooorm/remark-yaml)
 
-Parse and stringify YAML code blocks in **mdast**.
+Parse and stringify YAML code blocks in **remark**.
 
 Supports IE9+ ([mdn](https://developer.mozilla.org/JavaScript/Reference/Global_Objects/Object/defineProperty), [Kangax](http://kangax.github.io/compat-table/es5/#Object.defineProperty)).
 
@@ -9,34 +9,34 @@ Supports IE9+ ([mdn](https://developer.mozilla.org/JavaScript/Reference/Global_O
 [npm](https://docs.npmjs.com/cli/install)
 
 ```bash
-npm install mdast-yaml
+npm install remark-yaml
 ```
 
 [Component.js](https://github.com/componentjs/component)
 
 ```bash
-component install wooorm/mdast-yaml
+component install wooorm/remark-yaml
 ```
 
 [Bower](http://bower.io/#install-packages)
 
 ```bash
-bower install mdast-yaml
+bower install remark-yaml
 ```
 
 [Duo](http://duojs.org/#getting-started)
 
 ```javascript
-var yaml = require('wooorm/mdast-yaml');
+var yaml = require('wooorm/remark-yaml');
 ```
 
-UMD: globals, AMD, and CommonJS ([uncompressed](mdast-yaml.js) and [compressed](mdast-yaml.min.js)):
+UMD: globals, AMD, and CommonJS ([uncompressed](remark-yaml.js) and [compressed](remark-yaml.min.js)):
 
 ```html
-<script src="path/to/mdast.js"></script>
-<script src="path/to/mdast-yaml.js"></script>
+<script src="path/to/remark.js"></script>
+<script src="path/to/remark-yaml.js"></script>
 <script>
-  mdast.use(mdastYAML);
+  remark.use(remarkYAML);
 </script>
 ```
 
@@ -46,15 +46,15 @@ UMD: globals, AMD, and CommonJS ([uncompressed](mdast-yaml.js) and [compressed](
 
 *   [API](#api)
 
-    *   [mdast.use(yaml, options)](#mdastuseyaml-options)
+    *   [remark.use(yaml, options)](#remarkuseyaml-options)
 
 *   [License](#license)
 
 ## Usage
 
 ```javascript
-var yaml = require('mdast-yaml');
-var mdast = require('mdast').use(yaml);
+var yaml = require('remark-yaml');
+var remark = require('remark').use(yaml);
 var input = [
     '---',
     '"layout": "post"',
@@ -64,7 +64,7 @@ var input = [
     '# A header!',
     ''
 ].join('\n');
-var tree = mdast.parse(input);
+var tree = remark.parse(input);
 ```
 
 The `yaml` node now has a `yaml` property.
@@ -83,7 +83,7 @@ var data = tree.children[0].yaml;
 Stringifying the document (note the formatting) yields:
 
 ```javascript
-var doc = mdast.stringify(tree);
+var doc = remark.stringify(tree);
 ```
 
 ```markdown
@@ -97,13 +97,13 @@ title: Blogging Like a Hacker
 
 ## API
 
-### [mdast](https://github.com/wooorm/mdast#api).[use](https://github.com/wooorm/mdast#mdastuseplugin-options)(yaml, options)
+### [remark](https://github.com/wooorm/remark#api).[use](https://github.com/wooorm/remark#remarkuseplugin-options)(yaml, options)
 
-Adds a `yaml` property to [**YAML**](https://github.com/wooorm/mdast/blob/master/doc/Nodes.md#yaml) nodes.
+Adds a `yaml` property to [**YAML**](https://github.com/wooorm/remark/blob/master/doc/Nodes.md#yaml) nodes.
 
 **Signatures**
 
-*   `mdast = mdast.use(yaml, options?)`.
+*   `remark = remark.use(yaml, options?)`.
 
 **Parameters**
 
