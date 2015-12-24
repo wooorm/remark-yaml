@@ -5,6 +5,13 @@ mdast:
 
 <!--lint disable no-multiple-toplevel-headings-->
 
+2.0.0 / 2015-12-24
+==================
+
+*   Add temporary warning to `readme.md` ([e7f32e5](https://github.com/wooorm/remark-yaml/commit/e7f32e5))
+*   Rename `mdast-github` > `remark-github` ([c3cb89e](https://github.com/wooorm/remark-yaml/commit/c3cb89e))
+*   Refactor for changes in mdast ([e2bcb49](https://github.com/wooorm/remark-yaml/commit/e2bcb49))
+
 1.0.0 / 2015-08-16
 ==================
 
