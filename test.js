@@ -1,21 +1,15 @@
 'use strict';
 
-/* eslint-env mocha */
+/* eslint-env node */
 
 /*
  * Dependencies.
  */
 
-var assert = require('assert');
+var test = require('tape');
 var tjYAML = require('yaml');
 var remark = require('remark');
 var remarkYAML = require('./');
-
-/*
- * Methods.
- */
-
-var equal = assert.strictEqual;
 
 /**
  * Shortcut to process.
@@ -35,47 +29,52 @@ function yaml(value, options, parseOnly) {
  * Tests.
  */
 
-describe('remark-yaml()', function () {
-    it('should be a function', function () {
-        equal(typeof remarkYAML, 'function');
-    });
+test('remark-yaml()', function (t) {
+    var ast;
+    var isInvoked;
 
-    it('should parse and stringify yaml', function () {
-        equal(yaml([
+    t.equal(typeof remarkYAML, 'function', 'should be a function');
+
+    t.equal(
+        yaml([
             '---',
             '"hello": "world"',
             '---',
             '',
             '# Foo bar',
             ''
-        ].join('\n')), [
+        ].join('\n')),
+        [
             '---',
             'hello: world',
             '---',
             '',
             '# Foo bar',
             ''
-        ].join('\n'));
-    });
+        ].join('\n'),
+        'should parse and stringify yaml'
+    );
 
-    it('should support empty yaml', function () {
-        equal(yaml([
+    t.equal(
+        yaml([
             '---',
             '---',
             '',
             '# Foo bar',
             ''
-        ].join('\n')), [
+        ].join('\n')),
+        [
             '---',
             '---',
             '',
             '# Foo bar',
             ''
-        ].join('\n'));
-    });
+        ].join('\n'),
+        'should support empty yaml'
+    );
 
-    it('should accept `parse` and `stringify`', function () {
-        equal(yaml([
+    t.equal(
+        yaml([
             '---',
             '"hello": "world"',
             '---',
@@ -85,33 +84,32 @@ describe('remark-yaml()', function () {
         ].join('\n'), {
             'parse': 'load',
             'stringify': 'dump'
-        }), [
+        }),
+        [
             '---',
             'hello: world',
             '---',
             '',
             '# Foo bar',
             ''
-        ].join('\n'));
-    });
+        ].join('\n'),
+        'should accept `parse` and `stringify`'
+    );
 
-    it('should expose a `yaml` property', function () {
-        var ast = yaml([
-            '---',
-            '"hello": "world"',
-            '---',
-            '',
-            '# Foo bar',
-            ''
-        ].join('\n'), null, true).children[0];
+    ast = yaml([
+        '---',
+        '"hello": "world"',
+        '---',
+        '',
+        '# Foo bar',
+        ''
+    ].join('\n'), null, true).children[0];
 
-        assert('yaml' in ast);
-        assert('hello' in ast.yaml);
-        equal(ast.yaml.hello, 'world');
-    });
+    t.equal('yaml' in ast, true);
+    t.equal(ast.yaml.hello, 'world', 'should expose a `yaml` property');
 
-    it('should not stringify yaml when `prettify: false`', function () {
-        equal(yaml([
+    t.equal(
+        yaml([
             '---',
             '"hello": "world"',
             '---',
@@ -120,134 +118,126 @@ describe('remark-yaml()', function () {
             ''
         ].join('\n'), {
             'prettify': false
-        }), [
+        }),
+        [
             '---',
             '"hello": "world"',
             '---',
             '',
             '# Foo bar',
             ''
-        ].join('\n'));
-    });
+        ].join('\n'),
+        'should not stringify yaml when `prettify: false`'
+    );
 
-    it('should accept `library`', function () {
-        var ast = yaml([
-            '---',
-            '"hello": "world"',
-            '---',
-            '',
-            '# Foo bar',
-            ''
-        ].join('\n'), {
-            'library': tjYAML,
+    ast = yaml([
+        '---',
+        '"hello": "world"',
+        '---',
+        '',
+        '# Foo bar',
+        ''
+    ].join('\n'), {
+        'library': tjYAML,
+        'parse': 'eval'
+    }, true).children[0];
+
+    /*
+     * TJs `js-yaml` is a bit lacking, such as not
+     * supporting quoted keys.
+     */
+
+    t.equal('yaml' in ast, true);
+    t.equal(ast.yaml, 'hello', 'should accept `library`');
+
+    t.doesNotThrow(function () {
+        yaml('', {
+            'library': 'js-yaml'
+        });
+    }, 'should accept `library: "js-yaml"`');
+
+    t.doesNotThrow(function () {
+        yaml('', {
+            'library': 'yaml',
             'parse': 'eval'
-        }, true).children[0];
+        });
+    }, 'should accept `library` as a string');
 
-        /*
-         * TJs `js-yaml` is a bit lacking, such as not
-         * supporting quoted keys.
-         */
-
-        assert('yaml' in ast);
-        equal(ast.yaml, 'hello');
-    });
-
-    it('should accept `library: "js-yaml"`', function () {
-        assert.doesNotThrow(function () {
-            yaml('', {
-                'library': 'js-yaml'
-            });
+    t.doesNotThrow(function () {
+        yaml('', {
+            'library': 'node_modules/yaml/lib/yaml.js',
+            'parse': 'eval'
         });
     });
 
-    it('should accept `library` as a string', function () {
-        assert.doesNotThrow(function () {
-            yaml('', {
-                'library': 'yaml',
-                'parse': 'eval'
-            });
+    t.doesNotThrow(function () {
+        yaml('', {
+            'library': 'node_modules/yaml/lib/yaml',
+            'parse': 'eval'
         });
-    });
+    }, 'should accept `library` as a path without extension');
 
-    it('should accept `library` as a path', function () {
-        assert.doesNotThrow(function () {
-            yaml('', {
-                'library': 'node_modules/yaml/lib/yaml.js',
-                'parse': 'eval'
-            });
-        });
-    });
-
-    it('should accept `library` as a path without extension', function () {
-        assert.doesNotThrow(function () {
-            yaml('', {
-                'library': 'node_modules/yaml/lib/yaml',
-                'parse': 'eval'
-            });
-        });
-    });
-
-    it('should throw when `library` cannot be found', function () {
-        assert.throws(function () {
+    t.throws(
+        function () {
             yaml('', {
                 'library': 'foo'
             });
-        }, /Cannot find module 'foo'/);
+        },
+        /Cannot find module 'foo'/,
+        'should throw when `library` cannot be found'
+    );
+
+    /**
+     * Assertion.
+     */
+    function onparse(node) {
+        t.equal(node.type, 'yaml');
+        t.equal(node.value, '"hello": "world"');
+        t.equal(node.yaml.hello, 'world');
+
+        isInvoked = true;
+    }
+
+    isInvoked = false;
+
+    yaml([
+        '---',
+        '"hello": "world"',
+        '---',
+        '',
+        '# Foo bar',
+        ''
+    ].join('\n'), {
+        'onparse': onparse
     });
 
-    it('should accept `onparse`', function () {
-        var isInvoked;
+    t.equal(isInvoked, true, 'should accept `onparse`');
 
-        /**
-         * Assertion.
-         */
-        function onparse(node) {
-            equal(node.type, 'yaml');
-            equal(node.value, '"hello": "world"');
-            equal(node.yaml.hello, 'world');
+    /**
+     * Assertion.
+     */
+    function onstringify(node) {
+        t.equal(node.type, 'yaml');
+        t.equal(node.value, 'hello: world');
+        t.equal(node.yaml.hello, 'world');
 
-            isInvoked = true;
-        }
+        isInvoked = true;
+    }
 
-        yaml([
-            '---',
-            '"hello": "world"',
-            '---',
-            '',
-            '# Foo bar',
-            ''
-        ].join('\n'), {
-            'onparse': onparse
-        });
+    isInvoked = false;
 
-        equal(isInvoked, true);
+    yaml([
+        '---',
+        '"hello": "world"',
+        '---',
+        '',
+        '# Foo bar',
+        ''
+    ].join('\n'), {
+        'onstringify': onstringify
     });
 
-    it('should accept `onstringify`', function () {
-        var isInvoked;
+    t.equal(isInvoked, true, 'should accept `onstringify`');
 
-        /**
-         * Assertion.
-         */
-        function onstringify(node) {
-            equal(node.type, 'yaml');
-            equal(node.value, 'hello: world');
-            equal(node.yaml.hello, 'world');
-
-            isInvoked = true;
-        }
-
-        yaml([
-            '---',
-            '"hello": "world"',
-            '---',
-            '',
-            '# Foo bar',
-            ''
-        ].join('\n'), {
-            'onstringify': onstringify
-        });
-
-        equal(isInvoked, true);
-    });
+    t.end();
 });
