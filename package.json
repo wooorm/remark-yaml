@@ -36,17 +36,15 @@
     "yaml": "^0.2.0"
   },
   "scripts": {
-    "test-api": "node test.js",
-    "test-coverage": "istanbul cover test.js",
-    "test-travis": "npm run test-coverage",
-    "test": "npm run test-api",
+    "build-md": "remark . --quiet --frail",
+    "build-bundle": "browserify --no-builtins -u esprima index.js -s remarkYAML > remark-yaml.js",
+    "build-mangle": "esmangle remark-yaml.js > remark-yaml.min.js",
+    "build": "npm run build-md && npm run build-bundle && npm run build-mangle",
     "lint-api": "eslint .",
     "lint-style": "jscs --reporter inline .",
     "lint": "npm run lint-api && npm run lint-style",
-    "make": "npm run lint && npm run test-coverage",
-    "bundle": "browserify --no-builtins -u esprima index.js -s remarkYAML > remark-yaml.js",
-    "postbundle": "esmangle remark-yaml.js > remark-yaml.min.js",
-    "build-md": "remark . --quiet --frail",
-    "build": "npm run build-md && npm run bundle"
+    "test-api": "node test.js",
+    "test-coverage": "istanbul cover test.js",
+    "test": "npm run build && npm run lint && npm run test-coverage"
   }
 }
