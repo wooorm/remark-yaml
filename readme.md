@@ -18,12 +18,6 @@ npm install remark-yaml
 component install wooorm/remark-yaml
 ```
 
-[Bower](http://bower.io/#install-packages)
-
-```bash
-bower install remark-yaml
-```
-
 [Duo](http://duojs.org/#getting-started)
 
 ```javascript
