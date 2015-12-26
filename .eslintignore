@@ -1,7 +1,5 @@
-build/
 components/
 coverage/
-build.js
 example.js
 remark-yaml.js
 remark-yaml.min.js

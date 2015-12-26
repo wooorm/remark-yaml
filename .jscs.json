@@ -1,10 +1,8 @@
 {
   "excludeFiles": [
-    "build/",
     "components/",
     "coverage/",
     "node_modules/",
-    "build.js",
     "remark-yaml.js",
     "remark-yaml.min.js"
   ],
