@@ -16,7 +16,8 @@ var remarkYAML = require('./');
  *
  * @param {string} value - Markdown.
  * @param {Object?} [options] - Configuration.
- * @return {string}
+ * @param {boolean?} [parseOnly] - Whether to only parse.
+ * @return {string} - Processed `value`.
  */
 function yaml(value, options, parseOnly) {
     var processor = remark.use(remarkYAML, options);
@@ -189,6 +190,8 @@ test('remark-yaml()', function (t) {
 
     /**
      * Assertion.
+     *
+     * @param {Node} node - YAML node.
      */
     function onparse(node) {
         t.equal(node.type, 'yaml');
@@ -215,6 +218,8 @@ test('remark-yaml()', function (t) {
 
     /**
      * Assertion.
+     *
+     * @param {Node} node - YAML node.
      */
     function onstringify(node) {
         t.equal(node.type, 'yaml');

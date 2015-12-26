@@ -8,6 +8,8 @@
 
 'use strict';
 
+/* eslint-env commonjs */
+
 /*
  * Dependencies.
  */
@@ -34,6 +36,7 @@ try {
  * Hide process use from browserify/component/duo.
  */
 
+/* global global */
 /* istanbul ignore else */
 if (typeof global !== 'undefined' && global.process) {
     proc = global.process;
@@ -56,7 +59,8 @@ var JS_YAML = 'js-yaml';
  * Find a library.
  *
  * @param {string} pathlike - File-path-like value.
- * @return {Object}
+ * @return {*} - Library.
+ * @throws {Error} - When not in node.
  */
 function loadLibrary(pathlike) {
     var cwd;
@@ -116,7 +120,7 @@ function parse(tokenize, settings) {
         var data;
 
         if (node && node.value) {
-            data = parser[method](node.value || '');
+            data = parser[method](node.value /* istanbul ignore next */ || '');
 
             Object.defineProperty(node, 'yaml', {
                 'configurable': true,
@@ -152,7 +156,7 @@ function stringify(compile, settings) {
      * library and method.
      *
      * @param {MDASTYAMLNode} node - YAML node.
-     * @return {string}
+     * @return {string} - Compiled node.
      */
     return function (node) {
         if (node.yaml) {
