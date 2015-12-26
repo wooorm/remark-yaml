@@ -1,6 +1,6 @@
 {
   "name": "remark-yaml",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Parse and stringify YAML code blocks in remark",
   "license": "MIT",
   "keywords": [
