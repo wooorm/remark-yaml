@@ -26,12 +26,12 @@
     "istanbul": "^0.3.0",
     "jscs": "^2.0.0",
     "jscs-jsdoc": "^1.0.0",
-    "mdast": "^3.0.0-alpha.5",
-    "mdast-github": "^2.0.0-alpha.1",
-    "mdast-lint": "^2.0.0-alpha.1",
-    "mdast-toc": "^1.0.0",
-    "mdast-usage": "^2.0.0-alpha.1",
-    "mdast-yaml-config": "^2.0.0-alpha.1",
+    "remark": "^3.0.0",
+    "remark-github": "^2.0.0",
+    "remark-lint": "^2.0.0",
+    "remark-toc": "^2.0.0",
+    "remark-usage": "^2.0.0",
+    "remark-yaml-config": "^2.0.0",
     "mocha": "^2.0.0",
     "yaml": "^0.2.0"
   },
@@ -46,7 +46,7 @@
     "make": "npm run lint && npm run test-coverage",
     "bundle": "browserify --no-builtins -u esprima index.js -s remarkYAML > remark-yaml.js",
     "postbundle": "esmangle remark-yaml.js > remark-yaml.min.js",
-    "build-md": "mdast . --quiet",
+    "build-md": "remark . --quiet --frail",
     "build": "npm run build-md && npm run bundle"
   }
 }

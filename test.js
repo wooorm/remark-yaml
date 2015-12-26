@@ -8,7 +8,7 @@
 
 var assert = require('assert');
 var tjYAML = require('yaml');
-var mdast = require('mdast');
+var remark = require('remark');
 var remarkYAML = require('./');
 
 /*
@@ -25,7 +25,7 @@ var equal = assert.strictEqual;
  * @return {string}
  */
 function yaml(value, options, parseOnly) {
-    var processor = mdast.use(remarkYAML, options);
+    var processor = remark.use(remarkYAML, options);
     var ast = processor.run(processor.parse(value));
 
     return parseOnly ? ast : processor.stringify(ast);
