@@ -6,3 +6,12 @@ node_js:
 - iojs
 sudo: false
 after_script: npm install codecov.io && cat ./coverage/lcov.info | codecov
+deploy:
+  provider: releases
+  api_key:
+    secure: VmLpp6niZzziWKUPSMyUWH/HhnPhbYmNFdlFc2uPvV1DicLL9SFDxXCGTlnbglm7LjBszqcaOpD7KIrocc+4OY0UVMBCpudbftqbF4N57Zw/NYP7xa7Of5WawL33DU6wJT01MtiZxd/ikyef9tgGJ5vZKO9gi2bKTsbQnjSwFRw=
+  file:
+    - "remark-yaml.js"
+    - "remark-yaml.min.js"
+  on:
+    tags: true

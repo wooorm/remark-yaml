@@ -12,27 +12,9 @@ Supports IE9+ ([mdn](https://developer.mozilla.org/JavaScript/Reference/Global_O
 npm install remark-yaml
 ```
 
-[Component.js](https://github.com/componentjs/component)
-
-```bash
-component install wooorm/remark-yaml
-```
-
-[Duo](http://duojs.org/#getting-started)
-
-```javascript
-var yaml = require('wooorm/remark-yaml');
-```
-
-UMD: globals, AMD, and CommonJS ([uncompressed](remark-yaml.js) and [compressed](remark-yaml.min.js)):
-
-```html
-<script src="path/to/remark.js"></script>
-<script src="path/to/remark-yaml.js"></script>
-<script>
-  remark.use(remarkYAML);
-</script>
-```
+**remark-yaml** is also available for [duo](http://duojs.org/#getting-started),
+and as an AMD, CommonJS, and globals module, [uncompressed and
+compressed](https://github.com/wooorm/remark-yaml/releases).
 
 ## Table of Contents
 
