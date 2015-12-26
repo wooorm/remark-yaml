@@ -3,3 +3,5 @@
 components/
 coverage/
 node_modules/
+remark-yaml.js
+remark-yaml.min.js
